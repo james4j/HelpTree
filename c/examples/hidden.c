@@ -2,9 +2,6 @@
 #include <string.h>
 #include "../src/help_tree.h"
 
-static const ht_option_t verbose_opt = {"verbose", "", "--verbose", "Verbose output", false, false, "", false};
-static const ht_option_t debug_opt = {"debug", "", "--debug", "Enable debug mode", false, false, "", true};
-
 static const ht_command_t list_cmd = {"list", "List items", NULL, 0, NULL, 0, NULL, 0, false};
 
 static const ht_argument_t arg_id = {"ID", "Item ID", true, false};

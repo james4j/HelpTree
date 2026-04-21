@@ -160,12 +160,6 @@ static void sb_init(sb_t *sb) {
     sb->data[0] = '\0';
 }
 
-static void sb_free(sb_t *sb) {
-    free(sb->data);
-    sb->data = NULL;
-    sb->len = sb->cap = 0;
-}
-
 static void sb_ensure(sb_t *sb, size_t need) {
     if (sb->len + need + 1 > sb->cap) {
         while (sb->len + need + 1 > sb->cap) sb->cap *= 2;
@@ -213,7 +207,7 @@ static void render_text_lines(sb_t *out, const ht_command_t *cmd,
         const char *branch = is_last ? "└── " : "├── ";
 
         char sig_buf[128];
-        size_t sig_len = command_signature(sig_buf, sizeof(sig_buf), sub, opts->tree_all);
+        command_signature(sig_buf, sizeof(sig_buf), sub, opts->tree_all);
         char signature[256];
         snprintf(signature, sizeof(signature), "%s%s", sub->name, sig_buf);
 

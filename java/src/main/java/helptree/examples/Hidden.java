@@ -63,6 +63,7 @@ public class Hidden implements Runnable {
     public void run() {}
 
     public static void main(String[] args) {
+        System.setOut(new java.io.PrintStream(System.out, true, java.nio.charset.StandardCharsets.UTF_8));
         Hidden hidden = new Hidden();
         CommandLine cmd = new CommandLine(hidden);
         cmd.addSubcommand("list", new ListCmd());

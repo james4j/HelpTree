@@ -85,6 +85,7 @@ public class Basic implements Runnable {
     public void run() {}
 
     public static void main(String[] args) {
+        System.setOut(new java.io.PrintStream(System.out, true, java.nio.charset.StandardCharsets.UTF_8));
         Basic basic = new Basic();
         CommandLine cmd = new CommandLine(basic);
         cmd.addSubcommand("project", new CommandLine(new ProjectCmd()));
