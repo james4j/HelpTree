@@ -1,7 +1,6 @@
 import ArgumentParser
 import HelpTree
 
-@main
 struct Deep: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "deep",
@@ -104,4 +103,16 @@ struct Post: ParsableCommand {
     static var configuration = CommandConfiguration(commandName: "post", abstract: "Send a POST request")
     @Argument(help: "Path")
     var path: String
+}
+
+@main
+struct DeepEntry {
+    static func main() {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if let invocation = HelpTree.parseInvocation(args) {
+            HelpTree.run(for: Deep.self, invocation: invocation)
+        } else {
+            Deep.main()
+        }
+    }
 }

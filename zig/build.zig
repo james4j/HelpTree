@@ -8,17 +8,25 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/help_tree.zig"),
     });
 
-    const basic = b.addExecutable(.{
-        .name = "basic",
-        .root_source_file = b.path("examples/basic.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    basic.root_module.addImport("help_tree", help_tree);
-    b.installArtifact(basic);
+    const examples = .{
+        .{ "basic", "run-basic" },
+        .{ "deep", "run-deep" },
+        .{ "hidden", "run-hidden" },
+    };
 
-    const run_basic = b.addRunArtifact(basic);
-    if (b.args) |args| run_basic.addArgs(args);
-    const run_basic_step = b.step("run-basic", "Run the basic example");
-    run_basic_step.dependOn(&run_basic.step);
+    inline for (examples) |ex| {
+        const exe = b.addExecutable(.{
+            .name = ex[0],
+            .root_source_file = b.path("examples/" ++ ex[0] ++ ".zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        exe.root_module.addImport("help_tree", help_tree);
+        b.installArtifact(exe);
+
+        const run = b.addRunArtifact(exe);
+        if (b.args) |args| run.addArgs(args);
+        const step = b.step(ex[1], "Run the " ++ ex[0] ++ " example");
+        step.dependOn(&run.step);
+    }
 }

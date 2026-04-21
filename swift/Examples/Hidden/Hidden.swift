@@ -1,7 +1,6 @@
 import ArgumentParser
 import HelpTree
 
-@main
 struct Hidden: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "hidden",
@@ -43,4 +42,16 @@ struct Secret: ParsableCommand {
         commandName: "secret",
         abstract: "Secret backdoor"
     )
+}
+
+@main
+struct HiddenEntry {
+    static func main() {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if let invocation = HelpTree.parseInvocation(args) {
+            HelpTree.run(for: Hidden.self, invocation: invocation)
+        } else {
+            Hidden.main()
+        }
+    }
 }

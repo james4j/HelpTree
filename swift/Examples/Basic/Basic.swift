@@ -1,7 +1,6 @@
 import ArgumentParser
 import HelpTree
 
-@main
 struct Basic: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "basic",
@@ -40,4 +39,16 @@ struct Done: ParsableCommand {
     static var configuration = CommandConfiguration(commandName: "done", abstract: "Mark a task as done")
     @Argument(help: "Task ID")
     var id: Int
+}
+
+@main
+struct BasicEntry {
+    static func main() {
+        let args = Array(CommandLine.arguments.dropFirst())
+        if let invocation = HelpTree.parseInvocation(args) {
+            HelpTree.run(for: Basic.self, invocation: invocation)
+        } else {
+            Basic.main()
+        }
+    }
 }
