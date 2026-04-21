@@ -179,24 +179,24 @@ module HelpTree
       when "--help-tree" then help_tree = true
       when "--tree-depth", "-L"
         i += 1
-        raise "Missing value" if i >= argv.size
+        raise ArgumentError.new("Missing value for '#{arg}'") if i >= argv.size
         depth_limit = argv[i].to_i
       when "--tree-ignore", "-I"
         i += 1
-        raise "Missing value" if i >= argv.size
+        raise ArgumentError.new("Missing value for '#{arg}'") if i >= argv.size
         ignore << argv[i]
       when "--tree-all", "-a" then tree_all = true
       when "--tree-output"
         i += 1
-        raise "Missing value" if i >= argv.size
+        raise ArgumentError.new("Missing value for '--tree-output'") if i >= argv.size
         output = OutputFormat.parse(argv[i].capitalize)
       when "--tree-style"
         i += 1
-        raise "Missing value" if i >= argv.size
+        raise ArgumentError.new("Missing value for '--tree-style'") if i >= argv.size
         style = Style.parse(argv[i].capitalize)
       when "--tree-color"
         i += 1
-        raise "Missing value" if i >= argv.size
+        raise ArgumentError.new("Missing value for '--tree-color'") if i >= argv.size
         color = ColorPolicy.parse(argv[i].capitalize)
       else
         path << arg unless arg.starts_with?("-")

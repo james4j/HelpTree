@@ -45,8 +45,23 @@ end
 -- ------------------------------------------------------------------
 
 local function isatty()
-  local ok = os.execute("[ -t 1 ] >/dev/null 2>&1")
-  return ok == true
+  -- Try io.stdout:isatty() if available (LuaJIT / Lua 5.3+ with luaposix)
+  local stdout = io.stdout
+  if type(stdout) == "userdata" and stdout.isatty then
+    return stdout:isatty()
+  end
+  -- Fallback: use luv or luaposix if available
+  local ok, mod = pcall(require, "luv")
+  if ok and mod.guess_handle then
+    local handle_type = mod.guess_handle(1)
+    return handle_type == "tty"
+  end
+  ok, mod = pcall(require, "posix.unistd")
+  if ok and mod.isatty then
+    return mod.isatty(1) == 1
+  end
+  -- Last resort: assume not a tty
+  return false
 end
 
 local function parse_hex(hex)
@@ -401,7 +416,10 @@ function M.parse_invocation(raw_args)
       help_tree = true
     elseif (a == "--tree-depth" or a == "-L") and i + 1 <= #args then
       i = i + 1
-      depth_limit = tonumber(args[i]) or -1
+      local val = tonumber(args[i])
+      if val and val >= 0 then
+        depth_limit = val
+      end
     elseif (a == "--tree-ignore" or a == "-I") and i + 1 <= #args then
       i = i + 1
       table.insert(ignore, args[i])

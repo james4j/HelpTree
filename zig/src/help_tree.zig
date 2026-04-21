@@ -100,13 +100,13 @@ fn styleText(buf: []u8, text: []const u8, token: TextTokenTheme, opts: HelpTreeO
 
     switch (token.emphasis) {
         .bold => {
-            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "1", .{}) catch unreachable).len;
+            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "1", .{}) catch |e| std.debug.panic("bufPrint failed: {s}\n", .{@errorName(e)})).len;
         },
         .italic => {
-            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "3", .{}) catch unreachable).len;
+            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "3", .{}) catch |e| std.debug.panic("bufPrint failed: {s}\n", .{@errorName(e)})).len;
         },
         .bold_italic => {
-            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "1;3", .{}) catch unreachable).len;
+            codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "1;3", .{}) catch |e| std.debug.panic("bufPrint failed: {s}\n", .{@errorName(e)})).len;
         },
         .normal => {},
     }
@@ -118,7 +118,7 @@ fn styleText(buf: []u8, text: []const u8, token: TextTokenTheme, opts: HelpTreeO
                     codes_buf[codes_off] = ';';
                     codes_off += 1;
                 }
-                codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "38;2;{d};{d};{d}", .{ rgb.r, rgb.g, rgb.b }) catch unreachable).len;
+                codes_off += (std.fmt.bufPrint(codes_buf[codes_off..], "38;2;{d};{d};{d}", .{ rgb.r, rgb.g, rgb.b }) catch |e| std.debug.panic("bufPrint failed: {s}\n", .{@errorName(e)})).len;
             }
         }
     }

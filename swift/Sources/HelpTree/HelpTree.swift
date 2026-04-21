@@ -179,24 +179,24 @@ public enum HelpTree {
             case "--help-tree": helpTree = true
             case "--tree-depth", "-L":
                 i += 1
-                guard i < argv.count else { fatalError("Missing value for '\(arg)'") }
+                guard i < argv.count else { return nil }
                 depthLimit = Int(argv[i])
             case "--tree-ignore", "-I":
                 i += 1
-                guard i < argv.count else { fatalError("Missing value for '\(arg)'") }
+                guard i < argv.count else { return nil }
                 ignore.append(argv[i])
             case "--tree-all", "-a": treeAll = true
             case "--tree-output":
                 i += 1
-                guard i < argv.count else { fatalError("Missing value for '--tree-output'") }
+                guard i < argv.count else { return nil }
                 output = HelpTreeOutputFormat(rawValue: argv[i])
             case "--tree-style":
                 i += 1
-                guard i < argv.count else { fatalError("Missing value for '--tree-style'") }
+                guard i < argv.count else { return nil }
                 style = HelpTreeStyle(rawValue: argv[i]) ?? .rich
             case "--tree-color":
                 i += 1
-                guard i < argv.count else { fatalError("Missing value for '--tree-color'") }
+                guard i < argv.count else { return nil }
                 color = HelpTreeColor(rawValue: argv[i]) ?? .auto
             default:
                 if !arg.starts(with: "-") { path.append(arg) }

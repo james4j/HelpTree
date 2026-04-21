@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -55,7 +56,8 @@ func main() {
 
 	inv, err := helptree.ParseHelpTreeInvocation(os.Args[1:])
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
 	}
 	if inv != nil {
 		if cfg, err := helptree.LoadConfig("../help-tree.json"); err == nil {
@@ -65,5 +67,8 @@ func main() {
 		return
 	}
 
-	rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
 }

@@ -33,6 +33,7 @@ type discovery_options = {
   tree_output : string option;
   tree_style : string option;
   tree_color : string option;
+  path : string list;
 }
 
 type theme_token = {
@@ -300,7 +301,7 @@ let rec find_by_path cmd path =
 
 let render opts cmd =
   let buf = Buffer.create 4096 in
-  let selected = find_by_path cmd [] in
+  let selected = find_by_path cmd opts.path in
   let output = match opts.tree_output with Some o -> o | None -> "text" in
   if output = "json" then begin
     cmd_to_json buf selected opts 0;
@@ -334,7 +335,10 @@ let rec parse_args args acc =
   | "--tree-color" :: value :: rest ->
       parse_args rest { acc with tree_color = Some value }
   | arg :: rest when String.length arg > 0 && arg.[0] <> '-' ->
-      parse_args rest acc
+      if not acc.help_tree then
+        parse_args rest { acc with path = arg :: acc.path }
+      else
+        parse_args rest acc
   | _ :: rest -> parse_args rest acc
 
 let discovery_options () =
@@ -346,7 +350,9 @@ let discovery_options () =
     tree_output = None;
     tree_style = None;
     tree_color = None;
+    path = [];
   } in
-  parse_args (List.tl (Array.to_list Sys.argv)) defaults
+  let opts = parse_args (List.tl (Array.to_list Sys.argv)) defaults in
+  { opts with path = List.rev opts.path }
 
 let should_render_tree opts = opts.help_tree

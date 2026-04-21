@@ -156,6 +156,10 @@ typedef struct {
 static void sb_init(sb_t *sb) {
     sb->cap = 256;
     sb->data = malloc(sb->cap);
+    if (!sb->data) {
+        fprintf(stderr, "help_tree: out of memory\n");
+        abort();
+    }
     sb->len = 0;
     sb->data[0] = '\0';
 }
@@ -163,7 +167,12 @@ static void sb_init(sb_t *sb) {
 static void sb_ensure(sb_t *sb, size_t need) {
     if (sb->len + need + 1 > sb->cap) {
         while (sb->len + need + 1 > sb->cap) sb->cap *= 2;
-        sb->data = realloc(sb->data, sb->cap);
+        char *new_data = realloc(sb->data, sb->cap);
+        if (!new_data) {
+            fprintf(stderr, "help_tree: out of memory\n");
+            abort();
+        }
+        sb->data = new_data;
     }
 }
 
@@ -455,11 +464,20 @@ ht_invocation_t *ht_parse_invocation(int argc, char **argv) {
         if (strcmp(arg, "--help-tree") == 0) {
             help_tree = true;
         } else if ((strcmp(arg, "--tree-depth") == 0 || strcmp(arg, "-L") == 0) && i + 1 < argc) {
-            depth_limit = atoi(argv[++i]);
+            char *endptr = NULL;
+            long val = strtol(argv[++i], &endptr, 10);
+            if (endptr != argv[i] && *endptr == '\0' && val >= 0) {
+                depth_limit = (int)val;
+            }
         } else if ((strcmp(arg, "--tree-ignore") == 0 || strcmp(arg, "-I") == 0) && i + 1 < argc) {
             if (ignore_count == ignore_cap) {
                 ignore_cap = ignore_cap ? ignore_cap * 2 : 4;
-                ignore = realloc(ignore, ignore_cap * sizeof(char *));
+                char **new_ignore = realloc(ignore, ignore_cap * sizeof(char *));
+                if (!new_ignore) {
+                    fprintf(stderr, "help_tree: out of memory\n");
+                    abort();
+                }
+                ignore = new_ignore;
             }
             ignore[ignore_count++] = argv[++i];
         } else if (strcmp(arg, "--tree-all") == 0 || strcmp(arg, "-a") == 0) {
@@ -480,7 +498,12 @@ ht_invocation_t *ht_parse_invocation(int argc, char **argv) {
         } else if (arg[0] != '-') {
             if (path_count == path_cap) {
                 path_cap = path_cap ? path_cap * 2 : 4;
-                path = realloc(path, path_cap * sizeof(char *));
+                char **new_path = realloc(path, path_cap * sizeof(char *));
+                if (!new_path) {
+                    fprintf(stderr, "help_tree: out of memory\n");
+                    abort();
+                }
+                path = new_path;
             }
             path[path_count++] = arg;
         }
@@ -493,6 +516,10 @@ ht_invocation_t *ht_parse_invocation(int argc, char **argv) {
     }
 
     ht_invocation_t *inv = malloc(sizeof(ht_invocation_t));
+    if (!inv) {
+        fprintf(stderr, "help_tree: out of memory\n");
+        abort();
+    }
     inv->opts = ht_default_opts();
     inv->opts.depth_limit = depth_limit;
     inv->opts.ignore = ignore;

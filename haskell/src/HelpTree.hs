@@ -25,6 +25,7 @@ import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.List (intercalate)
 import Data.Maybe (mapMaybe)
 import System.IO (hIsTerminalDevice, hSetEncoding, stdout, utf8)
+import Text.Read (readMaybe)
 
 data TextEmphasis = Normal | Bold | Italic | BoldItalic
   deriving (Show, Eq)
@@ -207,8 +208,8 @@ parseHelpTreeInvocation argv = go argv (HelpTreeInvocation defaultOpts [])
     go [] inv | any (== "--help-tree") argv = Just inv
               | otherwise = Nothing
     go ("--help-tree":xs) inv = go xs inv
-    go ("--tree-depth":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { depthLimit = Just (read x) } })
-    go ("-L":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { depthLimit = Just (read x) } })
+    go ("--tree-depth":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { depthLimit = readMaybe x } })
+    go ("-L":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { depthLimit = readMaybe x } })
     go ("--tree-ignore":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { ignoreList = x : ignoreList (invocationOpts inv) } })
     go ("-I":x:xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { ignoreList = x : ignoreList (invocationOpts inv) } })
     go ("--tree-all":xs) inv = go xs (inv { invocationOpts = (invocationOpts inv) { treeAll = True } })

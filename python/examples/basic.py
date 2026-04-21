@@ -3,8 +3,10 @@
 
 import argparse
 import sys
+from pathlib import Path
 
-sys.path.insert(0, ".")
+# Allow importing help_tree when running example from any directory
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from help_tree import parse_help_tree_invocation, run_for_parser, load_config, apply_config
 
 
@@ -43,6 +45,8 @@ def main():
             apply_config(invocation.opts, config)
         except FileNotFoundError:
             pass
+        except Exception as e:
+            print(f"Warning: failed to load help-tree config: {e}", file=sys.stderr)
         run_for_parser(parser, invocation.opts, invocation.path)
         return
 

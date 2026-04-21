@@ -427,8 +427,8 @@ inline std::optional<HelpTreeOpts> parse_from_argv(int argc, char** argv,
         } else if ((arg == "--tree-depth" || arg == "-L") && i + 1 < argc) {
             try {
                 depth_limit = static_cast<std::size_t>(std::stoul(argv[++i]));
-            } catch (...) {
-                // ignore bad value, let CLI11 complain later if needed
+            } catch (const std::exception& e) {
+                std::cerr << "Warning: invalid --tree-depth value, ignoring: " << e.what() << "\n";
             }
         } else if ((arg == "--tree-ignore" || arg == "-I") && i + 1 < argc) {
             ignore.push_back(argv[++i]);

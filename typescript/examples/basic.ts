@@ -42,8 +42,10 @@ if (invocation) {
   try {
     const config = loadConfig("typescript/examples/help-tree.json");
     applyConfig(invocation.opts, config);
-  } catch {
-    // Config file is optional
+  } catch (err: any) {
+    if (err.code !== "ENOENT") {
+      console.warn("Warning: failed to load help-tree config:", err.message);
+    }
   }
   runForCommand(program, invocation.opts, invocation.path);
   process.exit(0);

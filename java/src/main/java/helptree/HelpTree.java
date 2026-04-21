@@ -47,7 +47,11 @@ public class HelpTree {
                 helpTreeSeen = true;
                 i++;
             } else if (("-L".equals(arg) || "--tree-depth".equals(arg)) && i + 1 < args.length) {
-                config.depthLimit = Integer.parseInt(args[++i]);
+                try {
+                    config.depthLimit = Integer.parseInt(args[++i]);
+                } catch (NumberFormatException e) {
+                    config.depthLimit = null;
+                }
                 i++;
             } else if (("-I".equals(arg) || "--tree-ignore".equals(arg)) && i + 1 < args.length) {
                 config.ignoreNames.add(args[++i]);

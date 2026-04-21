@@ -137,13 +137,19 @@ function _json_parse_simple(str::String)
         return nothing
     else
         # number
-        return parse(Float64, str)
+        try
+            return parse(Float64, str)
+        catch
+            throw(ArgumentError("Invalid JSON value: $(str)"))
+        end
     end
 end
 
 function _json_parse_object(str::String)
     str = strip(str)
-    @assert startswith(str, '{') && endswith(str, '}')
+    if !startswith(str, '{') || !endswith(str, '}')
+        throw(ArgumentError("JSON object must start with '{' and end with '}'"))
+    end
     content = strip(str[2:end-1])
     result = Dict{String, Any}()
     if content == ""
@@ -155,7 +161,9 @@ function _json_parse_object(str::String)
         # Parse key
         content = strip(content[i:end])
         i = 1
-        @assert content[i] == '"'
+        if i > length(content) || content[i] != '"'
+            throw(ArgumentError("JSON object key must be a quoted string"))
+        end
         i += 1
         key_start = i
         while i <= length(content) && content[i] != '"'
@@ -166,11 +174,15 @@ function _json_parse_object(str::String)
             end
         end
         key = content[key_start:i-1]
-        @assert content[i] == '"'
+        if i > length(content) || content[i] != '"'
+            throw(ArgumentError("JSON object key missing closing quote"))
+        end
         i += 1
         content = strip(content[i:end])
         i = 1
-        @assert content[i] == ':'
+        if i > length(content) || content[i] != ':'
+            throw(ArgumentError("JSON object key-value pair missing colon separator"))
+        end
         i += 1
         content = strip(content[i:end])
         i = 1
@@ -286,7 +298,9 @@ end
 
 function _json_parse_array(str::String)
     str = strip(str)
-    @assert startswith(str, '[') && endswith(str, ']')
+    if !startswith(str, '[') || !endswith(str, ']')
+        throw(ArgumentError("JSON array must start with '[' and end with ']'"))
+    end
     content = strip(str[2:end-1])
     result = Any[]
     if content == ""
@@ -310,7 +324,9 @@ end
 
 function _json_parse_string(str::String)
     str = strip(str)
-    @assert startswith(str, '"') && endswith(str, '"')
+    if !startswith(str, '"') || !endswith(str, '"')
+        throw(ArgumentError("JSON string must be quoted"))
+    end
     return str[2:end-1]
 end
 

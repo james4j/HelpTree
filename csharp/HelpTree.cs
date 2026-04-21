@@ -322,9 +322,9 @@ public static class HelpTree
         );
     }
 
-    public static void ApplyConfig(HelpTreeOpts opts, JsonObject config)
+    public static HelpTreeOpts ApplyConfig(HelpTreeOpts opts, JsonObject config)
     {
-        if (config["theme"] is not JsonObject theme) return;
+        if (config["theme"] is not JsonObject theme) return opts;
 
         TextTokenTheme ParseToken(JsonObject? obj) => obj == null
             ? TextTokenTheme.Normal()
@@ -333,7 +333,7 @@ public static class HelpTree
                 obj["color_hex"]?.GetValue<string>()
             );
 
-        opts = opts with
+        return opts with
         {
             Theme = new HelpTreeTheme(
                 ParseToken(theme["command"] as JsonObject),

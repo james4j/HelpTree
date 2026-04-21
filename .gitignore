@@ -86,10 +86,10 @@ lua/examples/*.out
 ocaml/examples/basic
 ocaml/examples/deep
 ocaml/examples/hidden
-ocaml/*.cmi
-ocaml/*.cmo
-ocaml/*.cmx
-ocaml/*.o
+ocaml/**/*.cmi
+ocaml/**/*.cmo
+ocaml/**/*.cmx
+ocaml/**/*.o
 
 # General
 .DS_Store

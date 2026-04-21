@@ -33,6 +33,7 @@ type discovery_options = {
   tree_output : string option;
   tree_style : string option;
   tree_color : string option;
+  path : string list;
 }
 
 val discovery_options : unit -> discovery_options

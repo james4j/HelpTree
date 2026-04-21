@@ -1,4 +1,4 @@
-import std/[json, strutils, terminal]
+import std/[json, options, strutils, terminal]
 
 type
   TextEmphasis* = enum Normal, Bold, Italic, BoldItalic
@@ -17,7 +17,7 @@ type
   HelpTreeColor* = enum Auto, Always, Never
 
   HelpTreeOpts* = object
-    depth_limit*: int
+    depth_limit*: Option[int]
     ignore*: seq[string]
     tree_all*: bool
     output*: HelpTreeOutputFormat
@@ -63,7 +63,7 @@ proc defaultTheme*(): HelpTreeTheme =
   result.description = TextTokenTheme(emphasis: Italic, color_hex: "#90a2af")
 
 proc defaultOpts*(): HelpTreeOpts =
-  result.depth_limit = -1
+  result.depth_limit = none(int)
   result.output = Text
   result.style = Rich
   result.color = Auto
@@ -165,7 +165,7 @@ proc parseHelpTreeInvocation*(argv: seq[string]): HelpTreeInvocation =
     return HelpTreeInvocation(helpTree: false, opts: defaultOpts(), path: @[])
 
   var opts = defaultOpts()
-  if depthLimit >= 0: opts.depth_limit = depthLimit
+  if depthLimit >= 0: opts.depth_limit = some(depthLimit)
   opts.ignore = ignore
   opts.tree_all = treeAll
   opts.output = output
@@ -219,7 +219,7 @@ proc renderTextLines(cmd: TreeCommand, prefix: string, depth: int, opts: HelpTre
   if items.len == 0:
     return
 
-  let atLimit = opts.depth_limit >= 0 and depth >= opts.depth_limit
+  let atLimit = opts.depth_limit.isSome and depth >= opts.depth_limit.get
 
   for i, sub in items:
     let isLast = i == items.len - 1
@@ -317,7 +317,7 @@ proc toJson*(cmd: TreeCommand, opts: HelpTreeOpts, depth: int): JsonNode =
   if argsArr.len > 0:
     result["arguments"] = argsArr
 
-  let canRecurse = opts.depth_limit < 0 or depth < opts.depth_limit
+  let canRecurse = opts.depth_limit.isNone or depth < opts.depth_limit.get
   if canRecurse:
     var subs = newJArray()
     for sub in cmd.subcommands:

@@ -57,8 +57,15 @@ module HelpTree
   end
 
   TreeCommand = Struct.new(:name, :description, :options, :arguments, :subcommands, :hidden, keyword_init: true) do
-    def initialize(name: '', description: '', options: [], arguments: [], subcommands: [], hidden: false)
-      super
+    def initialize(name: '', description: '', options: nil, arguments: nil, subcommands: nil, hidden: false)
+      super(
+        name: name,
+        description: description,
+        options: options || [],
+        arguments: arguments || [],
+        subcommands: subcommands || [],
+        hidden: hidden
+      )
     end
   end
 

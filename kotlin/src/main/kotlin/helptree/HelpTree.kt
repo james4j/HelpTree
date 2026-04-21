@@ -213,7 +213,7 @@ fun renderTextLines(cmd: TreeCommand, prefix: String, depth: Int, config: Config
     val items = cmd.subcommands.filter { !shouldSkipCommand(it, config) }
     if (items.isEmpty()) return emptyList()
 
-    val atLimit = config.depthLimit != null && depth >= config.depthLimit!!
+    val atLimit = config.depthLimit?.let { depth >= it } ?: false
     val lines = mutableListOf<String>()
 
     items.forEachIndexed { i, sub ->
