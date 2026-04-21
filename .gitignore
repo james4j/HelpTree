@@ -57,3 +57,4 @@ haskell/.stack-work/
 .vscode/
 .idea/
 .venv/
+nimbledeps/
