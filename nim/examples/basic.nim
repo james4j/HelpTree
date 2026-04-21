@@ -1,17 +1,67 @@
 import std/os
 import help_tree
 
-proc project_list() = echo "List projects"
-proc project_create(name: string) = echo "Create project: ", name
-proc task_list() = echo "List tasks"
-proc task_done(id: int) = echo "Done task: ", id
+proc basicCmd(): TreeCommand =
+  new(result)
+  result.name = "basic"
+  result.description = "A basic example CLI with nested subcommands"
+  result.options = @[
+    TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+  ]
 
-proc main() =
-  let invocation = parseHelpTreeInvocation(commandLineParams())
-  if invocation.path.len > 0 or true: # placeholder
-    var opts = defaultOpts()
-    runForParser("parser", opts)
-    return
+  var project = TreeCommand(
+    name: "project",
+    description: "Manage projects",
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  )
+  project.subcommands.add(TreeCommand(
+    name: "list",
+    description: "List all projects",
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  ))
+  project.subcommands.add(TreeCommand(
+    name: "create",
+    description: "Create a new project",
+    arguments: @[TreeArgument(name: "NAME", description: "Project name", required: true)],
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  ))
+
+  var task = TreeCommand(
+    name: "task",
+    description: "Manage tasks",
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  )
+  task.subcommands.add(TreeCommand(
+    name: "list",
+    description: "List all tasks",
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  ))
+  task.subcommands.add(TreeCommand(
+    name: "done",
+    description: "Mark a task as done",
+    arguments: @[TreeArgument(name: "ID", description: "Task ID", required: true)],
+    options: @[
+      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
+    ]
+  ))
+
+  result.subcommands = @[project, task]
 
 when isMainModule:
-  main()
+  let root = basicCmd()
+  let invocation = parseHelpTreeInvocation(commandLineParams())
+  if invocation.helpTree:
+    runForParser(root, invocation.opts, invocation.path)
+    quit(0)
+
+  echo "Run with --help-tree to see the command tree."

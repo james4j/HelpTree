@@ -187,7 +187,7 @@ run_nim() {
     subheader "basic"
     run_cmd nim "basic text" nim c -r --path:src examples/basic.nim --help-tree
     run_cmd nim "basic depth" nim c -r --path:src examples/basic.nim --help-tree -L 1
-    run_cmd nim "basic json" nim c -r --path:src examples/basic.nim --tree-output json
+    run_cmd nim "basic json" nim c -r --path:src examples/basic.nim --help-tree --tree-output json
     run_cmd nim "basic path" nim c -r --path:src examples/basic.nim project --help-tree
 
     subheader "deep"

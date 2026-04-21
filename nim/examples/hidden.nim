@@ -1,12 +1,42 @@
 import std/os
 import help_tree
 
-proc main() =
-  let invocation = parseHelpTreeInvocation(commandLineParams())
-  if invocation.path.len > 0 or true:
-    var opts = defaultOpts()
-    runForParser("parser", opts)
-    return
+proc hiddenCmd(): TreeCommand =
+  new(result)
+  result.name = "hidden"
+  result.description = "An example with hidden commands and flags"
+  result.options = @[
+    TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false),
+    TreeOption(name: "debug", long: "--debug", description: "Enable debug mode", required: false, takesValue: false, hidden: true)
+  ]
+
+  var listCmd = TreeCommand(
+    name: "list",
+    description: "List items"
+  )
+
+  var showCmd = TreeCommand(
+    name: "show",
+    description: "Show item details",
+    arguments: @[TreeArgument(name: "ID", description: "Item ID", required: true)]
+  )
+
+  var admin = TreeCommand(
+    name: "admin",
+    description: "Administrative commands",
+    hidden: true
+  )
+  admin.subcommands.add(TreeCommand(name: "users", description: "List all users"))
+  admin.subcommands.add(TreeCommand(name: "stats", description: "Show system stats"))
+  admin.subcommands.add(TreeCommand(name: "secret", description: "Secret backdoor"))
+
+  result.subcommands = @[listCmd, showCmd, admin]
 
 when isMainModule:
-  main()
+  let root = hiddenCmd()
+  let invocation = parseHelpTreeInvocation(commandLineParams())
+  if invocation.helpTree:
+    runForParser(root, invocation.opts, invocation.path)
+    quit(0)
+
+  echo "Run with --help-tree to see the command tree."
