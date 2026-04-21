@@ -45,7 +45,7 @@ fun main(args: Array<String>) {
 
     val cfg = extractConfig(args)
     if (cfg.helpTree) {
-        val verboseOpt = TreeOption("verbose", "", "--verbose", "Verbose output", required = false, takesValue = false)
+        val verboseOpt = verboseOption()
         val root = TreeCommand(
             name = "basic",
             description = "A basic example CLI with nested subcommands",

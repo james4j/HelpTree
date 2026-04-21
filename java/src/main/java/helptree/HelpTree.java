@@ -37,6 +37,10 @@ public class HelpTree {
         );
     }
 
+    public static TreeOption verboseOption() {
+        return new TreeOption("verbose", null, "--verbose", "Verbose output", false, false, false);
+    }
+
     public static Config extractConfig(String[] args) {
         Config config = new Config();
         List<String> path = new ArrayList<>();

@@ -5,37 +5,35 @@
 static const ht_argument_t arg_name = {"NAME", "Project name", true, false};
 static const ht_argument_t arg_id   = {"ID", "Task ID", true, false};
 
-static const ht_option_t verbose_opt = {"verbose", "", "--verbose", "Verbose output", false, false, "", false};
-
 static const ht_command_t project_list = {
     "list", "List all projects",
-    &verbose_opt, 1, NULL, 0, NULL, 0, false
+    &ht_verbose_option, 1, NULL, 0, NULL, 0, false
 };
 
 static const ht_command_t project_create = {
     "create", "Create a new project",
-    &verbose_opt, 1, &arg_name, 1, NULL, 0, false
+    &ht_verbose_option, 1, &arg_name, 1, NULL, 0, false
 };
 
 static const ht_command_t project = {
     "project", "Manage projects",
-    &verbose_opt, 1, NULL, 0,
+    &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){project_list, project_create}, 2, false
 };
 
 static const ht_command_t task_list = {
     "list", "List all tasks",
-    &verbose_opt, 1, NULL, 0, NULL, 0, false
+    &ht_verbose_option, 1, NULL, 0, NULL, 0, false
 };
 
 static const ht_command_t task_done = {
     "done", "Mark a task as done",
-    &verbose_opt, 1, &arg_id, 1, NULL, 0, false
+    &ht_verbose_option, 1, &arg_id, 1, NULL, 0, false
 };
 
 static const ht_command_t task = {
     "task", "Manage tasks",
-    &verbose_opt, 1, NULL, 0,
+    &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){task_list, task_done}, 2, false
 };
 

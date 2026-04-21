@@ -17,6 +17,7 @@ module HelpTree
   , runHelpTree
   , loadConfig
   , applyConfig
+  , verboseOption
   ) where
 
 import Data.Aeson
@@ -170,6 +171,9 @@ discoveryOptions =
   , TreeOption "tree-style" "" "--tree-style" "Tree text styling mode (rich or plain)" False True "" False
   , TreeOption "tree-color" "" "--tree-color" "Tree color mode (auto, always, never)" False True "" False
   ]
+
+verboseOption :: TreeOption
+verboseOption = TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False
 
 shouldUseColor :: HelpTreeOpts -> IO Bool
 shouldUseColor opts = case color opts of

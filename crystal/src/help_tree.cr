@@ -119,6 +119,10 @@ module HelpTree
     TreeOption.new(name: "tree-color", long: "--tree-color", description: "Tree color mode (auto, always, never)", required: false, takes_value: true),
   ]
 
+  def self.add_verbose_option(cmd : TreeCommand)
+    cmd.options << TreeOption.new(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takes_value: false)
+  end
+
   def self.should_use_color?(opts : Opts) : Bool
     case opts.color
     when ColorPolicy::Always then true

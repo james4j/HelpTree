@@ -84,6 +84,9 @@ proc discoveryOptions*(): seq[TreeOption] =
     TreeOption(name: "tree-color", long: "--tree-color", description: "Tree color mode (auto, always, never)", required: false, takesValue: true),
   ]
 
+proc addVerboseOption*(cmd: TreeCommand) =
+  cmd.options.add(TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false))
+
 proc shouldUseColor*(opts: HelpTreeOpts): bool =
   case opts.color
   of Always: true

@@ -9,7 +9,7 @@ deepTree :: TreeCommand
 deepTree = TreeCommand
   { cmdName = "deep"
   , cmdDescription = "A deeply nested CLI example (3 levels)"
-  , cmdOptions = discoveryOptions ++ [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+  , cmdOptions = discoveryOptions ++ [verboseOption]
   , cmdArguments = []
   , cmdSubcommands = [server, client]
   , cmdHidden = False
@@ -18,7 +18,7 @@ deepTree = TreeCommand
     server = TreeCommand
       { cmdName = "server"
       , cmdDescription = "Server management"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands = [config, db]
       , cmdHidden = False
@@ -26,12 +26,12 @@ deepTree = TreeCommand
     config = TreeCommand
       { cmdName = "config"
       , cmdDescription = "Configuration commands"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands =
-          [ TreeCommand "get" "Get a config value" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "KEY" "Config key" True False ] [] False
-          , TreeCommand "set" "Set a config value" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "KEY" "Config key" True False, TreeArgument "VALUE" "Config value" True False ] [] False
-          , TreeCommand "reload" "Reload configuration" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [] [] False
+          [ TreeCommand "get" "Get a config value" [verboseOption] [ TreeArgument "KEY" "Config key" True False ] [] False
+          , TreeCommand "set" "Set a config value" [verboseOption] [ TreeArgument "KEY" "Config key" True False, TreeArgument "VALUE" "Config value" True False ] [] False
+          , TreeCommand "reload" "Reload configuration" [verboseOption] [] [] False
           ]
       , cmdHidden = False
       }
@@ -50,7 +50,7 @@ deepTree = TreeCommand
     client = TreeCommand
       { cmdName = "client"
       , cmdDescription = "Client operations"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands = [auth, request]
       , cmdHidden = False
@@ -70,11 +70,11 @@ deepTree = TreeCommand
     request = TreeCommand
       { cmdName = "request"
       , cmdDescription = "HTTP request commands"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands =
-          [ TreeCommand "get" "Send a GET request" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "PATH" "Request path" True False ] [] False
-          , TreeCommand "post" "Send a POST request" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "PATH" "Request path" True False ] [] False
+          [ TreeCommand "get" "Send a GET request" [verboseOption] [ TreeArgument "PATH" "Request path" True False ] [] False
+          , TreeCommand "post" "Send a POST request" [verboseOption] [ TreeArgument "PATH" "Request path" True False ] [] False
           ]
       , cmdHidden = False
       }

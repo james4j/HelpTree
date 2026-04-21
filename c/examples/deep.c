@@ -2,21 +2,19 @@
 #include <string.h>
 #include "../src/help_tree.h"
 
-static const ht_option_t verbose_opt = {"verbose", "", "--verbose", "Verbose output", false, false, "", false};
-
 static const ht_command_t config_get = {
-    "get", "Get a config value", &verbose_opt, 1,
+    "get", "Get a config value", &ht_verbose_option, 1,
     (const ht_argument_t[]){ {"KEY", "Config key", true, false} }, 1, NULL, 0, false
 };
 static const ht_command_t config_set = {
-    "set", "Set a config value", &verbose_opt, 1,
+    "set", "Set a config value", &ht_verbose_option, 1,
     (const ht_argument_t[]){ {"KEY", "Config key", true, false}, {"VALUE", "Config value", true, false} }, 2, NULL, 0, false
 };
 static const ht_command_t config_reload = {
-    "reload", "Reload configuration", &verbose_opt, 1, NULL, 0, NULL, 0, false
+    "reload", "Reload configuration", &ht_verbose_option, 1, NULL, 0, NULL, 0, false
 };
 static const ht_command_t config_cmd = {
-    "config", "Configuration commands", &verbose_opt, 1, NULL, 0,
+    "config", "Configuration commands", &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){config_get, config_set, config_reload}, 3, false
 };
 
@@ -29,7 +27,7 @@ static const ht_command_t db = {
 };
 
 static const ht_command_t server = {
-    "server", "Server management", &verbose_opt, 1, NULL, 0,
+    "server", "Server management", &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){config_cmd, db}, 2, false
 };
 
@@ -42,20 +40,20 @@ static const ht_command_t auth = {
 };
 
 static const ht_command_t req_get = {
-    "get", "Send a GET request", &verbose_opt, 1,
+    "get", "Send a GET request", &ht_verbose_option, 1,
     (const ht_argument_t[]){ {"PATH", "Request path", true, false} }, 1, NULL, 0, false
 };
 static const ht_command_t req_post = {
-    "post", "Send a POST request", &verbose_opt, 1,
+    "post", "Send a POST request", &ht_verbose_option, 1,
     (const ht_argument_t[]){ {"PATH", "Request path", true, false} }, 1, NULL, 0, false
 };
 static const ht_command_t request = {
-    "request", "HTTP request commands", &verbose_opt, 1, NULL, 0,
+    "request", "HTTP request commands", &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){req_get, req_post}, 2, false
 };
 
 static const ht_command_t client = {
-    "client", "Client operations", &verbose_opt, 1, NULL, 0,
+    "client", "Client operations", &ht_verbose_option, 1, NULL, 0,
     (const ht_command_t[]){auth, request}, 2, false
 };
 

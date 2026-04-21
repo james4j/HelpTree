@@ -1,4 +1,37 @@
 # HelpTree
+ /$$   /$$           /$$        /$$$$$$$$
+| $$  | $$          | $$       |__  $$__/
+| $$  | $$  /$$$$$$ | $$  /$$$$$$ | $$  /$$$$$$  /$$$$$$   /$$$$$$
+| $$$$$$$$ /$$__  $$| $$ /$$__  $$| $$ /$$__  $$/$$__  $$ /$$__  $$
+| $$__  $$| $$$$$$$$| $$| $$  \ $$| $$| $$  \__/ $$$$$$$$| $$$$$$$$
+| $$  | $$| $$_____/| $$| $$  | $$| $$| $$     | $$_____/| $$_____/
+| $$  | $$|  $$$$$$$| $$| $$$$$$$/| $$| $$     |  $$$$$$$|  $$$$$$$
+|__/  |__/ \_______/|__/| $$____/ |__/|__/      \_______/ \_______/
+                        | $$
+                        | $$
+                        |__/
+
+
+
+```mermaid
+graph LR
+    Root[myapp] --> Project[project]
+    Root --> Task[task]
+
+    Project --> P_List[list]
+    Project --> P_Create[create]
+
+    Task --> T_List[list]
+    Task --> T_Done[done]
+
+    style Root fill:#7ee7e6,stroke:#333,stroke-width:2px,color:#000
+    style Project fill:#90a2af,stroke:#333,color:#000
+    style Task fill:#90a2af,stroke:#333,color:#000
+```
+
+
+
+
 
 A multi-language toolkit for adding `--help-tree` to command-line interfaces.
 

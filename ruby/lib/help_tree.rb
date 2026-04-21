@@ -89,6 +89,11 @@ module HelpTree
                    required: false, takes_value: true)
   ].freeze
 
+  def self.add_verbose_option(cmd)
+    cmd.options << TreeOption.new(name: 'verbose', long: '--verbose', description: 'Verbose output', required: false,
+                                  takes_value: false)
+  end
+
   def self.default_theme
     Theme.new
   end

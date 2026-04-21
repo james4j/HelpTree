@@ -5,85 +5,82 @@ proc deepCmd(): TreeCommand =
   new(result)
   result.name = "deep"
   result.description = "A deeply nested CLI example (3 levels)"
-  result.options = discoveryOptions() & @[
-    TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-  ]
+  result.options = discoveryOptions()
+  addVerboseOption(result)
 
   var server = TreeCommand(
     name: "server",
-    description: "Server management",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Server management"
   )
+  addVerboseOption(server)
 
   var config = TreeCommand(
     name: "config",
-    description: "Configuration commands",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Configuration commands"
   )
+  addVerboseOption(config)
   config.subcommands.add(TreeCommand(
     name: "get",
     description: "Get a config value",
-    arguments: @[TreeArgument(name: "KEY", description: "Config key", required: true)],
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    arguments: @[TreeArgument(name: "KEY", description: "Config key", required: true)]
   ))
+  addVerboseOption(config.subcommands[0])
   config.subcommands.add(TreeCommand(
     name: "set",
     description: "Set a config value",
     arguments: @[
       TreeArgument(name: "KEY", description: "Config key", required: true),
       TreeArgument(name: "VALUE", description: "Config value", required: true)
-    ],
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    ]
   ))
+  addVerboseOption(config.subcommands[1])
   config.subcommands.add(TreeCommand(
     name: "reload",
-    description: "Reload configuration",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Reload configuration"
   ))
+  addVerboseOption(config.subcommands[2])
 
   var db = TreeCommand(
     name: "db",
-    description: "Database commands",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Database commands"
   )
-  db.subcommands.add(TreeCommand(name: "migrate", description: "Run migrations", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
-  db.subcommands.add(TreeCommand(name: "seed", description: "Seed the database", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
-  db.subcommands.add(TreeCommand(name: "backup", description: "Backup the database", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
+  db.subcommands.add(TreeCommand(name: "migrate", description: "Run migrations"))
+  db.subcommands.add(TreeCommand(name: "seed", description: "Seed the database"))
+  db.subcommands.add(TreeCommand(name: "backup", description: "Backup the database"))
 
   server.subcommands = @[config, db]
 
   var client = TreeCommand(
     name: "client",
-    description: "Client operations",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Client operations"
   )
+  addVerboseOption(client)
 
   var auth = TreeCommand(
     name: "auth",
-    description: "Authentication commands",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "Authentication commands"
   )
-  auth.subcommands.add(TreeCommand(name: "login", description: "Log in", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
-  auth.subcommands.add(TreeCommand(name: "logout", description: "Log out", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
-  auth.subcommands.add(TreeCommand(name: "whoami", description: "Show current user", options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]))
+  auth.subcommands.add(TreeCommand(name: "login", description: "Log in"))
+  auth.subcommands.add(TreeCommand(name: "logout", description: "Log out"))
+  auth.subcommands.add(TreeCommand(name: "whoami", description: "Show current user"))
 
   var request = TreeCommand(
     name: "request",
-    description: "HTTP request commands",
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    description: "HTTP request commands"
   )
+  addVerboseOption(request)
   request.subcommands.add(TreeCommand(
     name: "get",
     description: "Send a GET request",
-    arguments: @[TreeArgument(name: "PATH", description: "Request path", required: true)],
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    arguments: @[TreeArgument(name: "PATH", description: "Request path", required: true)]
   ))
+  addVerboseOption(request.subcommands[0])
   request.subcommands.add(TreeCommand(
     name: "post",
     description: "Send a POST request",
-    arguments: @[TreeArgument(name: "PATH", description: "Request path", required: true)],
-    options: @[TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)]
+    arguments: @[TreeArgument(name: "PATH", description: "Request path", required: true)]
   ))
+  addVerboseOption(request.subcommands[1])
 
   client.subcommands = @[auth, request]
 

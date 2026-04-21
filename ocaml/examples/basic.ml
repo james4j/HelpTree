@@ -1,7 +1,5 @@
 open Help_tree
 
-let verbose_opt = { name = "verbose"; short = ""; long = "--verbose"; description = "Verbose output"; required = false; takes_value = false; default_val = ""; hidden = false }
-
 let project_list = {
   name = "list"; description = "List all projects";
   options = [verbose_opt]; arguments = []; subcommands = []; hidden = false

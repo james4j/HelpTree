@@ -114,4 +114,7 @@ void ht_run_for_tree(const ht_command_t *root, const ht_opts_t *opts, char **pat
 extern const ht_option_t ht_discovery_options[];
 extern const size_t ht_discovery_option_count;
 
+/* --- common options --- */
+extern const ht_option_t ht_verbose_option;
+
 #endif /* HELP_TREE_H */

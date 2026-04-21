@@ -57,3 +57,4 @@ val should_render_tree : discovery_options -> bool
 val render : discovery_options -> cmd -> string
 val load_config : string -> config_file
 val apply_config : discovery_options -> config_file -> discovery_options
+val verbose_opt : opt

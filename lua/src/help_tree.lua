@@ -43,6 +43,10 @@ function M.discovery_options()
   }
 end
 
+function M.verbose_option()
+  return { name = "verbose", short = "", long = "--verbose", description = "Verbose output", required = false, takes_value = false, default_val = "", hidden = false }
+end
+
 -- ------------------------------------------------------------------
 -- Helpers
 -- ------------------------------------------------------------------

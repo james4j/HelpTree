@@ -65,6 +65,8 @@ fun discoveryOptions(): List<TreeOption> = listOf(
     TreeOption("tree-color", long = "--tree-color", description = "Tree color mode (auto, always, never)", takesValue = true)
 )
 
+fun verboseOption(): TreeOption = TreeOption("verbose", long = "--verbose", description = "Verbose output")
+
 fun extractConfig(args: Array<String>): Config {
     val config = Config()
     val path = mutableListOf<String>()

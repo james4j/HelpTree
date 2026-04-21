@@ -9,7 +9,7 @@ basicTree :: TreeCommand
 basicTree = TreeCommand
   { cmdName = "basic"
   , cmdDescription = "A basic example CLI with nested subcommands"
-  , cmdOptions = discoveryOptions ++ [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+  , cmdOptions = discoveryOptions ++ [verboseOption]
   , cmdArguments = []
   , cmdSubcommands = [project, task]
   , cmdHidden = False
@@ -18,22 +18,22 @@ basicTree = TreeCommand
     project = TreeCommand
       { cmdName = "project"
       , cmdDescription = "Manage projects"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands =
-          [ TreeCommand "list" "List all projects" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [] [] False
-          , TreeCommand "create" "Create a new project" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "NAME" "Project name" True False ] [] False
+          [ TreeCommand "list" "List all projects" [verboseOption] [] [] False
+          , TreeCommand "create" "Create a new project" [verboseOption] [ TreeArgument "NAME" "Project name" True False ] [] False
           ]
       , cmdHidden = False
       }
     task = TreeCommand
       { cmdName = "task"
       , cmdDescription = "Manage tasks"
-      , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+      , cmdOptions = [verboseOption]
       , cmdArguments = []
       , cmdSubcommands =
-          [ TreeCommand "list" "List all tasks" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [] [] False
-          , TreeCommand "done" "Mark a task as done" [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ] [ TreeArgument "ID" "Task ID" True False ] [] False
+          [ TreeCommand "list" "List all tasks" [verboseOption] [] [] False
+          , TreeCommand "done" "Mark a task as done" [verboseOption] [ TreeArgument "ID" "Task ID" True False ] [] False
           ]
       , cmdHidden = False
       }

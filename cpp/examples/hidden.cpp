@@ -9,7 +9,7 @@ static help_tree::TreeCommand make_tree() {
     root.name = "hidden";
     root.description = "Example with hidden commands and flags";
 
-    root.options.push_back({"verbose", "", "verbose", "Verbose output", false, false, false});
+    root.options.push_back(help_tree::verboseOption());
     root.options.push_back({"debug",   "", "debug",   "Enable debug mode", false, false, true});
     for (const auto& opt : help_tree::discoveryOptions()) {
         root.options.push_back(opt);

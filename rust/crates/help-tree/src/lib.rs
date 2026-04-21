@@ -15,7 +15,7 @@
 //! // run_for_path::<Cli>(HelpTreeOpts::default(), &[]).unwrap();
 //! ```
 
-use clap::{Arg, Command, CommandFactory};
+use clap::{Arg, Args, Command, CommandFactory};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::io::IsTerminal;
@@ -46,6 +46,60 @@ pub enum HelpTreeColor {
     Auto,
     Always,
     Never,
+}
+
+/// Reusable clap arguments for `--help-tree` discovery flags.
+///
+/// Flatten this into your top-level CLI struct with `#[command(flatten)]`.
+#[derive(Clone, Debug, Args)]
+pub struct HelpTreeArgs {
+    #[arg(
+        long = "help-tree",
+        help = "Print a recursive command map derived from framework metadata"
+    )]
+    pub help_tree: bool,
+
+    #[arg(
+        long = "tree-depth",
+        short = 'L',
+        help = "Limit --help-tree recursion depth"
+    )]
+    pub tree_depth: Option<usize>,
+
+    #[arg(
+        long = "tree-ignore",
+        short = 'I',
+        help = "Exclude subtrees/commands from --help-tree output"
+    )]
+    pub tree_ignore: Vec<String>,
+
+    #[arg(
+        long = "tree-all",
+        short = 'a',
+        help = "Include hidden subcommands in --help-tree output"
+    )]
+    pub tree_all: bool,
+
+    #[arg(
+        long = "tree-output",
+        help = "Output format (text or json)",
+        value_enum
+    )]
+    pub tree_output: Option<HelpTreeOutputFormat>,
+
+    #[arg(
+        long = "tree-style",
+        help = "Tree text styling mode (rich or plain)",
+        value_enum
+    )]
+    pub tree_style: Option<HelpTreeStyle>,
+
+    #[arg(
+        long = "tree-color",
+        help = "Tree color mode (auto, always, never)",
+        value_enum
+    )]
+    pub tree_color: Option<HelpTreeColor>,
 }
 
 /// Text emphasis levels.
@@ -223,6 +277,29 @@ pub fn run_for_path<CF: CommandFactory>(
     }
 
     Ok(())
+}
+
+/// Convenience helper that checks for `--help-tree` in `std::env::args()`, runs the
+/// tree renderer when present, or falls through to the provided closure for normal
+/// CLI dispatch.
+///
+/// This helper handles the common boilerplate of parsing the help-tree invocation,
+/// loading config, applying config, and running `run_for_path`.
+pub fn run_with_help_tree<CF>(f: impl FnOnce())
+where
+    CF: CommandFactory,
+{
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(mut invocation) =
+        parse_help_tree_invocation(&args[1..]).expect("invalid --help-tree invocation")
+    {
+        if let Ok(config) = load_config("help-tree.toml") {
+            apply_config(&mut invocation.opts, &config);
+        }
+        run_for_path::<CF>(invocation.opts, &invocation.path).unwrap();
+        return;
+    }
+    f();
 }
 
 /// Parsed result from scanning argv for `--help-tree`.

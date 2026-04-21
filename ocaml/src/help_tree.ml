@@ -55,6 +55,17 @@ type config_file = {
 let tree_align_width = 28
 let min_dots = 4
 
+let verbose_opt = {
+  name = "verbose";
+  short = "";
+  long = "--verbose";
+  description = "Verbose output";
+  required = false;
+  takes_value = false;
+  default_val = "";
+  hidden = false;
+}
+
 let default_theme () = {
   command = { emphasis = "bold"; color_hex = Some "#7ee7e6" };
   options = { emphasis = "normal"; color_hex = None };

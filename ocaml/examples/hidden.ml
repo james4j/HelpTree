@@ -1,6 +1,5 @@
 open Help_tree
 
-let verbose_opt = { name = "verbose"; short = ""; long = "--verbose"; description = "Verbose output"; required = false; takes_value = false; default_val = ""; hidden = false }
 let debug_opt = { name = "debug"; short = ""; long = "--debug"; description = "Enable debug mode"; required = false; takes_value = false; default_val = ""; hidden = true }
 
 let list_cmd = { name = "list"; description = "List items"; options = []; arguments = []; subcommands = []; hidden = false }

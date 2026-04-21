@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
 
     val cfg = extractConfig(args)
     if (cfg.helpTree) {
-        val verboseOpt = TreeOption("verbose", "", "--verbose", "Verbose output", required = false, takesValue = false)
+        val verboseOpt = verboseOption()
         val debugOpt = TreeOption("debug", "", "--debug", "Enable debug mode", required = false, takesValue = false, hidden = true)
         val root = TreeCommand(
             name = "hidden",

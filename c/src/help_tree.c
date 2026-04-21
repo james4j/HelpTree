@@ -23,6 +23,8 @@ const ht_option_t ht_discovery_options[] = {
 
 const size_t ht_discovery_option_count = sizeof(ht_discovery_options) / sizeof(ht_discovery_options[0]);
 
+const ht_option_t ht_verbose_option = {"verbose", "", "--verbose", "Verbose output", false, false, "", false};
+
 /* ------------------------------------------------------------------ */
 /* Defaults                                                            */
 /* ------------------------------------------------------------------ */

@@ -109,6 +109,10 @@ inline std::vector<TreeOption> discoveryOptions() {
     };
 }
 
+inline TreeOption verboseOption() {
+    return {"verbose", "", "verbose", "Verbose output", false, false, false};
+}
+
 // ---------------------------------------------------------------------------
 // Config loading
 // ---------------------------------------------------------------------------

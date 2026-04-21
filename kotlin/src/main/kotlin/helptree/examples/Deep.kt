@@ -72,7 +72,7 @@ fun main(args: Array<String>) {
 
     val cfg = extractConfig(args)
     if (cfg.helpTree) {
-        val verboseOpt = TreeOption("verbose", "", "--verbose", "Verbose output", required = false, takesValue = false)
+        val verboseOpt = verboseOption()
         val root = TreeCommand(
             name = "deep",
             description = "A deeply nested CLI example (3 levels)",

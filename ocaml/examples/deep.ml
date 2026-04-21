@@ -1,7 +1,5 @@
 open Help_tree
 
-let verbose_opt = { name = "verbose"; short = ""; long = "--verbose"; description = "Verbose output"; required = false; takes_value = false; default_val = ""; hidden = false }
-
 let config_get = {
   name = "get"; description = "Get a config value";
   options = [verbose_opt]; arguments = [{ name = "KEY"; description = "Config key"; required = true; hidden = false }];

@@ -13,11 +13,10 @@ if invocation
   root = HelpTree::TreeCommand.new(
     name: "hidden",
     description: "An example with hidden commands and flags",
-    options: HelpTree::DISCOVERY_OPTIONS + [
-      HelpTree::TreeOption.new(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takes_value: false),
-      HelpTree::TreeOption.new(name: "debug", long: "--debug", description: "Enable debug mode", required: false, takes_value: false, hidden: true),
-    ]
+    options: HelpTree::DISCOVERY_OPTIONS.dup
   )
+  HelpTree.add_verbose_option(root)
+  root.options << HelpTree::TreeOption.new(name: "debug", long: "--debug", description: "Enable debug mode", required: false, takes_value: false, hidden: true)
 
   root.subcommands << HelpTree::TreeCommand.new(name: "list", description: "List items")
   root.subcommands << HelpTree::TreeCommand.new(

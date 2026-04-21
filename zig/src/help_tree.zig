@@ -77,6 +77,8 @@ pub const discovery_options = &[_]TreeOption{
     .{ .name = "tree-color", .long = "--tree-color", .description = "Tree color mode (auto, always, never)", .required = false, .takes_value = true },
 };
 
+pub const verbose_option = TreeOption{ .name = "verbose", .long = "--verbose", .description = "Verbose output", .required = false, .takes_value = false };
+
 fn shouldUseColor(opts: HelpTreeOpts) bool {
     return switch (opts.color) {
         .always => true,

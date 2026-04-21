@@ -5,55 +5,42 @@ proc basicCmd(): TreeCommand =
   new(result)
   result.name = "basic"
   result.description = "A basic example CLI with nested subcommands"
-  result.options = discoveryOptions() & @[
-    TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-  ]
+  result.options = discoveryOptions()
+  addVerboseOption(result)
 
   var project = TreeCommand(
     name: "project",
-    description: "Manage projects",
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    description: "Manage projects"
   )
+  addVerboseOption(project)
   project.subcommands.add(TreeCommand(
     name: "list",
-    description: "List all projects",
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    description: "List all projects"
   ))
+  addVerboseOption(project.subcommands[0])
   project.subcommands.add(TreeCommand(
     name: "create",
     description: "Create a new project",
-    arguments: @[TreeArgument(name: "NAME", description: "Project name", required: true)],
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    arguments: @[TreeArgument(name: "NAME", description: "Project name", required: true)]
   ))
+  addVerboseOption(project.subcommands[1])
 
   var task = TreeCommand(
     name: "task",
-    description: "Manage tasks",
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    description: "Manage tasks"
   )
+  addVerboseOption(task)
   task.subcommands.add(TreeCommand(
     name: "list",
-    description: "List all tasks",
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    description: "List all tasks"
   ))
+  addVerboseOption(task.subcommands[0])
   task.subcommands.add(TreeCommand(
     name: "done",
     description: "Mark a task as done",
-    arguments: @[TreeArgument(name: "ID", description: "Task ID", required: true)],
-    options: @[
-      TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
-    ]
+    arguments: @[TreeArgument(name: "ID", description: "Task ID", required: true)]
   ))
+  addVerboseOption(task.subcommands[1])
 
   result.subcommands = @[project, task]
 

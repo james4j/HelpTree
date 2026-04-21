@@ -5,10 +5,9 @@ proc hiddenCmd(): TreeCommand =
   new(result)
   result.name = "hidden"
   result.description = "An example with hidden commands and flags"
-  result.options = discoveryOptions() & @[
-    TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false),
-    TreeOption(name: "debug", long: "--debug", description: "Enable debug mode", required: false, takesValue: false, hidden: true)
-  ]
+  result.options = discoveryOptions()
+  addVerboseOption(result)
+  result.options.add(TreeOption(name: "debug", long: "--debug", description: "Enable debug mode", required: false, takesValue: false, hidden: true))
 
   var listCmd = TreeCommand(
     name: "list",

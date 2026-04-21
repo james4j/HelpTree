@@ -347,6 +347,10 @@ struct TreeOption
     hidden::Bool
 end
 
+function verbose_option()
+    return TreeOption("verbose", nothing, "--verbose", "Verbose output", false, false, false)
+end
+
 struct TreeArgument
     name::String
     description::String
