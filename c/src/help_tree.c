@@ -4,6 +4,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#define TREE_ALIGN_WIDTH 28
+#define MIN_DOTS 4
+
 /* ------------------------------------------------------------------ */
 /* Discovery options                                                   */
 /* ------------------------------------------------------------------ */
@@ -230,8 +233,8 @@ static void render_text_lines(sb_t *out, const ht_command_t *cmd,
         sb_append(out, styled_suffix);
 
         if (sub->description && sub->description[0]) {
-            int dots_len = 28 - (int)strlen(signature);
-            if (dots_len < 4) dots_len = 4;
+            int dots_len = TREE_ALIGN_WIDTH - (int)strlen(signature);
+            if (dots_len < MIN_DOTS) dots_len = MIN_DOTS;
             sb_append(out, " ");
             sb_appendn(out, '.', (size_t)dots_len);
             sb_append(out, " ");

@@ -1,5 +1,9 @@
 import std/[json, options, strutils, terminal]
 
+const
+  TreeAlignWidth = 28
+  MinDots = 4
+
 type
   TextEmphasis* = enum Normal, Bold, Italic, BoldItalic
 
@@ -233,7 +237,7 @@ proc renderTextLines(cmd: TreeCommand, prefix: string, depth: int, opts: HelpTre
 
     var line: string
     if about.len > 0:
-      let dotsLen = max(4, 28 - signature.len)
+      let dotsLen = max(MinDots, TreeAlignWidth - signature.len)
       let dots = ".".repeat(dotsLen)
       let aboutStyled = styleText(about, opts.theme.description, opts)
       line = prefix & branch & sigStyled & " " & dots & " " & aboutStyled

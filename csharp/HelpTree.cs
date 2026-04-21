@@ -46,6 +46,9 @@ public record HelpTreeInvocation(HelpTreeOpts Opts, List<string> Path);
 
 public static class HelpTree
 {
+    private const int TreeAlignWidth = 28;
+    private const int MinDots = 4;
+
     private static bool ShouldUseColor(HelpTreeOpts opts) => opts.Color switch
     {
         HelpTreeColor.Always => true,
@@ -195,7 +198,7 @@ public static class HelpTree
             var signatureStyled = StyleText(commandName, opts.EffectiveTheme.Command, opts) + StyleText(suffix, opts.EffectiveTheme.Options, opts);
             var decorated = string.IsNullOrEmpty(about)
                 ? signatureStyled
-                : $"{signatureStyled} {new string('.', Math.Max(4, 28 - signature.Length))} {StyleText(about, opts.EffectiveTheme.Description, opts)}";
+                : $"{signatureStyled} {new string('.', Math.Max(MinDots, TreeAlignWidth - signature.Length))} {StyleText(about, opts.EffectiveTheme.Description, opts)}";
 
             outLines.Add($"{prefix}{branch}{decorated}");
 

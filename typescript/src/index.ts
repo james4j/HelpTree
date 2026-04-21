@@ -1,6 +1,9 @@
 import { Command, Option, Argument } from "commander";
 import * as fs from "fs";
 
+const TREE_ALIGN_WIDTH = 28;
+const MIN_DOTS = 4;
+
 export type HelpTreeOutputFormat = "text" | "json";
 export type HelpTreeStyle = "plain" | "rich";
 export type HelpTreeColor = "auto" | "always" | "never";
@@ -239,7 +242,7 @@ function writeCommandTreeLines(
       styleText(commandName, opts.theme.command, opts) +
       styleText(suffix, opts.theme.options, opts);
     const decorated = about
-      ? `${signatureStyled} ${".".repeat(Math.max(4, 28 - signature.length))} ${styleText(
+      ? `${signatureStyled} ${".".repeat(Math.max(MIN_DOTS, TREE_ALIGN_WIDTH - signature.length))} ${styleText(
           about,
           opts.theme.description,
           opts

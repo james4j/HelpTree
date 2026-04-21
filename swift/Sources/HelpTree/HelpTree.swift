@@ -43,6 +43,9 @@ public struct HelpTreeConfigFile: Codable {
 }
 
 public enum HelpTree {
+    private static let treeAlignWidth = 28
+    private static let minDots = 4
+
     private static func shouldUseColor(_ opts: HelpTreeOpts) -> Bool {
         switch opts.color {
         case .always: return true
@@ -118,7 +121,7 @@ public enum HelpTree {
             let signature = commandName + suffix
             let about = subConfig.abstract
             let styled = styleText(commandName, opts.theme.command, opts) + styleText(suffix, opts.theme.options, opts)
-            let decorated = about.isEmpty ? styled : "\(styled) \(String(repeating: ".", count: max(4, 28 - signature.count))) \(styleText(about, opts.theme.description, opts))"
+            let decorated = about.isEmpty ? styled : "\(styled) \(String(repeating: ".", count: max(minDots, treeAlignWidth - signature.count))) \(styleText(about, opts.theme.description, opts))"
             out.append("\(prefix)\(branch)\(decorated)")
             if atLimit { continue }
             let ext = isLast ? "    " : "│   "

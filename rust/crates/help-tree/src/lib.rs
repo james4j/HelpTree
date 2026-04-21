@@ -20,6 +20,9 @@ use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::io::IsTerminal;
 
+const TREE_ALIGN_WIDTH: usize = 28;
+const MIN_DOTS: usize = 4;
+
 /// Output format for `--help-tree`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, clap::ValueEnum)]
 #[serde(rename_all = "lowercase")]
@@ -628,7 +631,8 @@ fn write_command_tree_lines(
         let decorated = if about.is_empty() {
             signature_styled
         } else {
-            let dots = ".".repeat(4.max(28usize.saturating_sub(signature.chars().count())));
+            let dots = "."
+                .repeat(MIN_DOTS.max(TREE_ALIGN_WIDTH.saturating_sub(signature.chars().count())));
             format!(
                 "{} {dots} {}",
                 signature_styled,

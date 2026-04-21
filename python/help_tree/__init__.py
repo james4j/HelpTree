@@ -8,6 +8,9 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+TREE_ALIGN_WIDTH = 28
+MIN_DOTS = 4
+
 
 class TextEmphasis:
     Normal = "normal"
@@ -361,7 +364,7 @@ def _write_parser_tree_lines(
             + _style_text(suffix, opts.theme.options, opts)
         )
         if about:
-            dots = "." * max(4, 28 - len(signature))
+            dots = "." * max(MIN_DOTS, TREE_ALIGN_WIDTH - len(signature))
             decorated = f"{signature_styled} {dots} {_style_text(about, opts.theme.description, opts)}"
         else:
             decorated = signature_styled

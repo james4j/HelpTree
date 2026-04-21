@@ -1,6 +1,9 @@
 require 'json'
 
 module HelpTree
+  TREE_ALIGN_WIDTH = 28
+  MIN_DOTS = 4
+
   module Emphasis
     NORMAL = 'normal'.freeze
     BOLD = 'bold'.freeze
@@ -264,7 +267,7 @@ module HelpTree
       sig_styled = style_text(name, opts.theme.command, opts) + style_text(suffix, opts.theme.options, opts)
 
       if about.length > 0
-        dots_len = [4, 28 - signature.length].max
+        dots_len = [MIN_DOTS, TREE_ALIGN_WIDTH - signature.length].max
         dots = '.' * dots_len
         line = "#{prefix}#{branch}#{sig_styled} #{dots} #{style_text(about, opts.theme.description, opts)}"
       else

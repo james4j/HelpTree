@@ -1,5 +1,8 @@
 local M = {}
 
+local TREE_ALIGN_WIDTH = 28
+local MIN_DOTS = 4
+
 -- ------------------------------------------------------------------
 -- Defaults
 -- ------------------------------------------------------------------
@@ -197,8 +200,7 @@ local function render_text_lines(cmd, prefix, depth, opts)
     local line = prefix .. branch .. styled_name .. styled_suffix
 
     if sub.description and sub.description ~= "" then
-      local dots_len = 28 - #signature
-      if dots_len < 4 then dots_len = 4 end
+      local dots_len = math.max(MIN_DOTS, TREE_ALIGN_WIDTH - #signature)
       line = line .. " " .. string.rep(".", dots_len) .. " " .. style_text(sub.description, opts.theme.description, opts)
     end
 

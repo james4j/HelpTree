@@ -2,6 +2,9 @@ require "json"
 require "colorize"
 
 module HelpTree
+  TREE_ALIGN_WIDTH = 28
+  MIN_DOTS         =  4
+
   enum OutputFormat
     Text
     Json
@@ -270,7 +273,7 @@ module HelpTree
       sig_styled = style_text(name, opts.theme.command, opts) + style_text(suffix, opts.theme.options, opts)
 
       if about.size > 0
-        dots_len = Math.max(4, 28 - signature.size)
+        dots_len = Math.max(MIN_DOTS, TREE_ALIGN_WIDTH - signature.size)
         dots = "." * dots_len
         line = "#{prefix}#{branch}#{sig_styled} #{dots} #{style_text(about, opts.theme.description, opts)}"
       else

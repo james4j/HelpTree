@@ -10,6 +10,9 @@ import java.util.List;
 
 public class HelpTree {
 
+    private static final int TREE_ALIGN_WIDTH = 32;
+    private static final int MIN_DOTS = 4;
+
     public static class Config {
         public boolean helpTree = false;
         public Integer depthLimit = null;
@@ -225,8 +228,8 @@ public class HelpTree {
         String desc = node.description != null ? node.description : "";
 
         int startCol = branch.length() + name.length() + suffix.length();
-        int dotCount = Math.max(4, 32 - startCol);
-        if (startCol >= 32) dotCount = 4;
+        int dotCount = Math.max(MIN_DOTS, TREE_ALIGN_WIDTH - startCol);
+        if (startCol >= TREE_ALIGN_WIDTH) dotCount = MIN_DOTS;
         String dots = ".".repeat(dotCount);
 
         String line = branch

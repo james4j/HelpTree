@@ -2,6 +2,9 @@ package helptree
 
 import java.io.Console
 
+const val TREE_ALIGN_WIDTH = 28
+const val MIN_DOTS = 4
+
 data class TextTokenTheme(
     val emphasis: String = "normal",
     val colorHex: String? = null
@@ -225,7 +228,7 @@ fun renderTextLines(cmd: TreeCommand, prefix: String, depth: Int, config: Config
         val sigStyled = styleText(name, theme.command, config) + styleText(suffix, theme.options, config)
 
         val line = if (about.isNotEmpty()) {
-            val dotsLen = maxOf(4, 28 - signature.length)
+            val dotsLen = maxOf(MIN_DOTS, TREE_ALIGN_WIDTH - signature.length)
             val dots = ".".repeat(dotsLen)
             "$prefix$branch$sigStyled $dots ${styleText(about, theme.description, config)}"
         } else {

@@ -47,6 +47,9 @@ type theme = {
   description : theme_token;
 }
 
+let tree_align_width = 28
+let min_dots = 4
+
 let default_theme () = {
   command = { emphasis = "bold"; color_hex = Some "#7ee7e6" };
   options = { emphasis = "normal"; color_hex = None };
@@ -147,7 +150,7 @@ let rec render_text_lines buf (cmd : cmd) prefix depth opts =
           Buffer.add_string buf (prefix ^ branch ^ name_styled ^ suffix_styled);
           if about <> "" then begin
             let sig_len = String.length signature in
-            let dots_len = max 4 (28 - sig_len) in
+            let dots_len = max min_dots (tree_align_width - sig_len) in
             Buffer.add_string buf (" " ^ String.make dots_len '.' ^ " ");
             Buffer.add_string buf (style_text about t.description opts)
           end;

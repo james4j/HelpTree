@@ -1,5 +1,8 @@
 module HelpTree
 
+const TREE_ALIGN_WIDTH = 28
+const MIN_DOTS = 4
+
 using ArgParse
 
 # ---------------------------------------------------------------------------
@@ -815,7 +818,7 @@ function _write_command_tree_lines(cmd::TreeCommand, prefix::String, depth::Int,
         signature_styled = _style_text(command_name, opts.theme.command, opts) *
                            _style_text(suffix, opts.theme.options, opts)
         if about != ""
-            dots = "." ^ max(4, 28 - length(signature))
+            dots = "." ^ max(MIN_DOTS, TREE_ALIGN_WIDTH - length(signature))
             decorated = "$(signature_styled) $(dots) $(_style_text(about, opts.theme.description, opts))"
         else
             decorated = signature_styled

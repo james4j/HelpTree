@@ -12,6 +12,11 @@ import (
 // CommandInfo is a minimal interface for cobra command introspection.
 // We use *cobra.Command directly.
 
+const (
+	treeAlignWidth = 28
+	minDots        = 4
+)
+
 func shouldSkipFlag(f *cobra.Command, name string, treeAll bool) bool {
 	if treeAll {
 		return false
@@ -157,7 +162,7 @@ func writeCommandTreeLines(
 			styleText(suffix, opts.Theme.Options, opts)
 		var decorated string
 		if about != "" {
-			dots := strings.Repeat(".", max(4, 28-len(signature)))
+			dots := strings.Repeat(".", max(minDots, treeAlignWidth-len(signature)))
 			decorated = fmt.Sprintf("%s %s %s", signatureStyled, dots, styleText(about, opts.Theme.Description, opts))
 		} else {
 			decorated = signatureStyled

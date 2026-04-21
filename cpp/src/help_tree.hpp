@@ -19,6 +19,9 @@
 
 namespace help_tree {
 
+constexpr std::size_t TREE_ALIGN_WIDTH = 28;
+constexpr std::size_t MIN_DOTS = 4;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -384,7 +387,7 @@ inline std::string render_text(const TreeCommand& cmd,
                 line = signature_styled;
             } else {
                 std::size_t sig_len = signature.size();
-                std::size_t dots_count = (sig_len < 28) ? (28 - sig_len) : 4;
+                std::size_t dots_count = (sig_len < TREE_ALIGN_WIDTH) ? (TREE_ALIGN_WIDTH - sig_len) : MIN_DOTS;
                 std::string dots(dots_count, '.');
                 line = signature_styled + " " + dots + " "
                      + style_text(child->description, opts.theme.description, opts);

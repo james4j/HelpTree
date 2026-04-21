@@ -27,6 +27,12 @@ import Data.Maybe (mapMaybe)
 import System.IO (hIsTerminalDevice, hSetEncoding, stdout, utf8)
 import Text.Read (readMaybe)
 
+treeAlignWidth :: Int
+treeAlignWidth = 28
+
+minDots :: Int
+minDots = 4
+
 data TextEmphasis = Normal | Bold | Italic | BoldItalic
   deriving (Show, Eq)
 
@@ -287,7 +293,7 @@ renderTextLines cmd prefix depth opts = do
       let sigStyled = nameStyled ++ suffixStyled
       line <- if not (null about)
                 then do
-                  let dotsLen = max 4 (28 - length signature)
+                  let dotsLen = max minDots (treeAlignWidth - length signature)
                       dots = replicate dotsLen '.'
                   aboutStyled <- styleText about (description (theme opts)) opts
                   return $ prefix ++ branch ++ sigStyled ++ " " ++ dots ++ " " ++ aboutStyled

@@ -1,5 +1,8 @@
 const std = @import("std");
 
+const tree_align_width = 28;
+const min_dots = 4;
+
 pub const TextEmphasis = enum { normal, bold, italic, bold_italic };
 
 pub const TextTokenTheme = struct {
@@ -207,9 +210,9 @@ fn renderTextLines(allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []con
         try out.appendSlice(allocator, suffix_styled);
 
         if (about.len > 0) {
-            const dots_len = @max(4, 28 - @as(isize, @intCast(signature.len)));
-            // Since dots_len could be negative if signature is very long, clamp to 4
-            const actual_dots = if (dots_len < 4) 4 else @as(usize, @intCast(dots_len));
+            const dots_len = @max(min_dots, tree_align_width - @as(isize, @intCast(signature.len)));
+            // Since dots_len could be negative if signature is very long, clamp to min_dots
+            const actual_dots = if (dots_len < min_dots) min_dots else @as(usize, @intCast(dots_len));
             try out.appendSlice(allocator, " ");
             try out.appendNTimes(allocator, '.', actual_dots);
             try out.appendSlice(allocator, " ");
