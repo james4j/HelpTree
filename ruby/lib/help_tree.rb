@@ -42,6 +42,26 @@ module HelpTree
 
   ConfigFile = Struct.new(:theme, keyword_init: true)
 
+  TreeOption = Struct.new(:name, :short, :long, :description, :required, :takes_value, :default_val, :hidden,
+                          keyword_init: true) do
+    def initialize(name: '', short: '', long: '', description: '', required: false, takes_value: false,
+                   default_val: '', hidden: false)
+      super
+    end
+  end
+
+  TreeArgument = Struct.new(:name, :description, :required, :hidden, keyword_init: true) do
+    def initialize(name: '', description: '', required: false, hidden: false)
+      super
+    end
+  end
+
+  TreeCommand = Struct.new(:name, :description, :options, :arguments, :subcommands, :hidden, keyword_init: true) do
+    def initialize(name: '', description: '', options: [], arguments: [], subcommands: [], hidden: false)
+      super
+    end
+  end
+
   def self.default_theme
     Theme.new
   end
@@ -61,6 +81,7 @@ module HelpTree
   def self.parse_hex_rgb(hex)
     h = hex.delete_prefix('#')
     return nil unless h.length == 6
+
     [h[0..1].to_i(16), h[2..3].to_i(16), h[4..5].to_i(16)]
   rescue StandardError
     nil
@@ -82,6 +103,7 @@ module HelpTree
     end
 
     return text if codes.empty?
+
     "\e[#{codes.join(';')}m#{text}\e[0m"
   end
 
@@ -164,10 +186,161 @@ module HelpTree
     )
   end
 
-  def self.run_for_class(klass, opts = default_opts, requested_path = [])
-    # Thor-specific implementation would introspect klass.all_commands
-    puts style_text(klass.to_s.split('::').last, opts.theme.command, opts)
-    puts
-    puts "Use `#{klass.to_s.split('::').last} <COMMAND> --help` for full details on arguments and flags."
+  # ---------------------------------------------------------------------------
+  # Tree rendering
+  # ---------------------------------------------------------------------------
+
+  def self.should_skip_option(opt, tree_all)
+    return false if tree_all
+    return true if opt.hidden
+    return true if %w[help version].include?(opt.name)
+
+    false
+  end
+
+  def self.should_skip_argument(arg, tree_all)
+    return false if tree_all
+    return true if arg.hidden
+
+    false
+  end
+
+  def self.should_skip_command(cmd, opts)
+    return true if cmd.name == 'help'
+    return true if opts.ignore.include?(cmd.name)
+    return true if !opts.tree_all && cmd.hidden
+
+    false
+  end
+
+  def self.command_signature(cmd, tree_all)
+    suffix = ''
+    cmd.arguments.each do |arg|
+      next if should_skip_argument(arg, tree_all)
+
+      suffix += arg.required ? " <#{arg.name}>" : " [#{arg.name}]"
+    end
+    has_flags = cmd.options.any? { |opt| !should_skip_option(opt, tree_all) }
+    suffix += ' [flags]' if has_flags
+    [cmd.name, suffix]
+  end
+
+  def self.render_text_lines(cmd, prefix, depth, opts, lines)
+    items = cmd.subcommands.reject { |sub| should_skip_command(sub, opts) }
+    return if items.empty?
+
+    at_limit = opts.depth_limit && depth >= opts.depth_limit
+
+    items.each_with_index do |sub, i|
+      is_last = i == items.length - 1
+      branch = is_last ? '└── ' : '├── '
+      name, suffix = command_signature(sub, opts.tree_all)
+      signature = name + suffix
+      about = sub.description
+      sig_styled = style_text(name, opts.theme.command, opts) + style_text(suffix, opts.theme.options, opts)
+
+      if about.length > 0
+        dots_len = [4, 28 - signature.length].max
+        dots = '.' * dots_len
+        line = "#{prefix}#{branch}#{sig_styled} #{dots} #{style_text(about, opts.theme.description, opts)}"
+      else
+        line = "#{prefix}#{branch}#{sig_styled}"
+      end
+      lines << line
+
+      next if at_limit
+
+      extension = is_last ? '    ' : '│   '
+      render_text_lines(sub, prefix + extension, depth + 1, opts, lines)
+    end
+  end
+
+  def self.render_text(cmd, opts)
+    lines = []
+    lines << style_text(cmd.name, opts.theme.command, opts)
+
+    cmd.options.each do |opt|
+      next if should_skip_option(opt, opts.tree_all)
+
+      meta = if !opt.short.empty? && !opt.long.empty?
+               "#{opt.short}, #{opt.long}"
+             elsif !opt.long.empty?
+               opt.long
+             elsif !opt.short.empty?
+               opt.short
+             else
+               opt.name
+             end
+      lines << "  #{style_text(meta, opts.theme.options,
+                               opts)} … #{style_text(opt.description, opts.theme.description, opts)}"
+    end
+
+    unless cmd.subcommands.empty?
+      lines << ''
+      render_text_lines(cmd, '', 0, opts, lines)
+    end
+
+    lines.join("\n")
+  end
+
+  def self.option_to_json(opt)
+    obj = { 'type' => 'option', 'name' => opt.name }
+    obj['description'] = opt.description unless opt.description.empty?
+    obj['short'] = opt.short unless opt.short.empty?
+    obj['long'] = opt.long unless opt.long.empty?
+    obj['default'] = opt.default_val unless opt.default_val.empty?
+    obj['required'] = opt.required
+    obj['takes_value'] = opt.takes_value
+    obj
+  end
+
+  def self.argument_to_json(arg)
+    obj = { 'type' => 'argument', 'name' => arg.name }
+    obj['description'] = arg.description unless arg.description.empty?
+    obj['required'] = arg.required
+    obj
+  end
+
+  def self.to_json(cmd, opts, depth)
+    obj = { 'type' => 'command', 'name' => cmd.name }
+    obj['description'] = cmd.description unless cmd.description.empty?
+
+    opts_arr = cmd.options.reject { |opt| should_skip_option(opt, opts.tree_all) }.map { |opt| option_to_json(opt) }
+    obj['options'] = opts_arr unless opts_arr.empty?
+
+    args_arr = cmd.arguments.reject do |arg|
+      should_skip_argument(arg, opts.tree_all)
+    end.map { |arg| argument_to_json(arg) }
+    obj['arguments'] = args_arr unless args_arr.empty?
+
+    can_recurse = opts.depth_limit.nil? || depth < opts.depth_limit
+    if can_recurse
+      subs = cmd.subcommands.reject { |sub| should_skip_command(sub, opts) }.map { |sub| to_json(sub, opts, depth + 1) }
+      obj['subcommands'] = subs unless subs.empty?
+    end
+
+    obj
+  end
+
+  def self.find_by_path(cmd, path)
+    result = cmd
+    path.each do |token|
+      sub = result.subcommands.find { |s| s.name == token }
+      break unless sub
+
+      result = sub
+    end
+    result
+  end
+
+  def self.run_for_tree(root, opts, requested_path = [])
+    selected = find_by_path(root, requested_path)
+    if opts.output == :json
+      puts JSON.pretty_generate(to_json(selected, opts, 0))
+    else
+      puts render_text(selected, opts)
+      puts
+      puts "Use `#{root.name} <COMMAND> --help` for full details on arguments and flags."
+    end
   end
 end
