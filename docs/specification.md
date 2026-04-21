@@ -1,0 +1,210 @@
+# HelpTree Specification
+
+This document defines the canonical behavior that every HelpTree implementation must satisfy.
+
+## Core Behavior
+
+### Discovery
+HelpTree introspects the CLI framework's native command/argument/subcommand metadata. No hand-maintained maps or external configuration files are required for basic operation.
+
+### Invocation
+
+The primary entry point is `--help-tree`. It may appear:
+- At the top level: `myapp --help-tree`
+- After a subcommand path: `myapp project task --help-tree`
+
+When `--help-tree` is present, the program prints the tree and exits with code 0.
+
+### Flags
+
+All implementations MUST support these flags when parsing `--help-tree`:
+
+| Flag | Short | Type | Description |
+|------|-------|------|-------------|
+| `--help-tree` | | boolean | Enable tree output |
+| `--tree-depth` | `-L` | integer | Max recursion depth |
+| `--tree-ignore` | `-I` | string (repeatable) | Exclude subcommand names |
+| `--tree-all` | `-a` | boolean | Include hidden subcommands/arguments |
+| `--tree-output` | | enum `text`/`json` | Output format |
+| `--tree-style` | | enum `plain`/`rich` | `plain` disables styling |
+| `--tree-color` | | enum `auto`/`always`/`never` | Color control |
+
+### Output Formats
+
+#### Text
+
+A UTF-8 tree using box-drawing characters:
+
+```
+myapp
+
+├── project [flags] ............. Manage projects
+│   ├── list [flags] ................ List all projects
+│   └── create <NAME> [flags] ....... Create a new project
+└── task [flags] ................ Manage tasks
+    ├── list [flags] ................ List all tasks
+    └── done <ID> [flags] ........... Mark a task as done
+```
+
+Each line is structured as:
+
+```
+branch + command_name + positional_suffix + dots + description
+```
+
+Rules:
+- `command_name` is styled by the theme's `command` token
+- `positional_suffix` shows required `<ARG>` and optional `[ARG]` positionals, plus `[flags]` if any non-hidden flags exist
+- `description` is styled by the theme's `description` token
+- Dots pad the description to a visual column (target ~32 chars from line start, minimum 4 dots)
+- Root-level non-hidden options MAY be printed above the tree as a quick reference
+
+#### JSON
+
+A recursive object structure:
+
+```json
+{
+  "type": "command",
+  "name": "myapp",
+  "description": "...",
+  "options": [
+    {
+      "type": "option",
+      "name": "verbose",
+      "short": "-v",
+      "long": "--verbose",
+      "description": "Verbose output",
+      "required": false,
+      "takes_value": false
+    }
+  ],
+  "arguments": [
+    {
+      "type": "argument",
+      "name": "FILE",
+      "description": "Input file",
+      "required": true
+    }
+  ],
+  "subcommands": [
+    { "type": "command", "name": "list", "description": "..." }
+  ]
+}
+```
+
+JSON field rules:
+- `description` is omitted if empty
+- `options` is omitted if empty
+- `arguments` is omitted if empty
+- `subcommands` is omitted if empty or at depth limit
+- `short` / `long` / `default` are omitted if not applicable
+
+### Theming
+
+Every implementation MUST support theming of at least these tokens:
+- `command` — the command name in the tree
+- `options` — flags and positional suffix text
+- `description` — the help text
+
+Each token has:
+- `emphasis`: `normal`, `bold`, `italic`, `bold_italic`
+- `color_hex`: optional `#RRGGBB` string
+
+Default theme:
+| Token | Emphasis | Color |
+|-------|----------|-------|
+| `command` | `bold` | `#7ee7e6` |
+| `options` | `normal` | (none) |
+| `description` | `italic` | `#90a2af` |
+
+ANSI styling rules:
+- `plain` style or `normal` emphasis with no color → raw text
+- `bold` → ANSI `1`
+- `italic` → ANSI `3`
+- `bold_italic` → ANSI `1;3`
+- Color → `38;2;R;G;B`
+- Codes are combined with `;` and wrapped as `\x1b[...m{text}\x1b[0m`
+
+### Config Files
+
+Implementations SHOULD support per-project theme overrides via config files.
+
+**Preferred formats by language:**
+- Rust: TOML (`help-tree.toml`)
+- Python, TypeScript, Go: JSON (`help-tree.json`)
+
+**Common JSON schema:**
+
+```json
+{
+  "theme": {
+    "command": { "emphasis": "bold", "color_hex": "#7ee7e6" },
+    "options": { "emphasis": "normal" },
+    "description": { "emphasis": "italic", "color_hex": "#90a2af" }
+  }
+}
+```
+
+**TOML equivalent (Rust):**
+
+```toml
+[theme]
+[theme.command]
+emphasis = "bold"
+color_hex = "#7ee7e6"
+
+[theme.options]
+emphasis = "normal"
+
+[theme.description]
+emphasis = "italic"
+color_hex = "#90a2af"
+```
+
+Config loading is optional; if the file is missing, built-in defaults apply.
+
+### Filtering
+
+- **Depth limit (`-L`)**: Stop recursing subcommands at the given depth. Depth 0 is the root command itself (no children shown). Depth 1 shows immediate children but no grandchildren.
+- **Ignore (`-I`)**: Exclude subcommands whose name matches any ignore string. Repeatable.
+- **All (`-a`)**: Include subcommands and arguments marked hidden by the CLI framework.
+
+Default filtering:
+- Hidden commands/arguments are skipped
+- A `help` subcommand (if auto-generated by the framework) is skipped
+- `help` and `version` built-in arguments are skipped
+- Framework-internal discovery flags (e.g. `--tree-depth`) are hidden from output at depth > 0
+
+### Path Targeting
+
+`myapp project task --help-tree` resolves `project` then `task` and renders the tree rooted at `task`. Unrecognized path tokens stop resolution early and render from the last matched command.
+
+## Compliance Tests
+
+See [`tests/fixtures/`](tests/fixtures/) for shared test command trees and expected outputs.
+
+## Language-Specific Notes
+
+### Rust (clap)
+- Uses `clap::CommandFactory` and `clap::Command` reflection
+- `clap` auto-generates a `help` subcommand; filter it out
+- Config: TOML preferred, JSON fallback via `serde_json`
+
+### Python (argparse)
+- Uses `parser._subparsers` and `parser._actions` introspection
+- `argparse` auto-adds `-h`/`--help`; filter it out
+- Hidden subparsers are created with `help=argparse.SUPPRESS`
+- Config: JSON via `json` stdlib
+
+### TypeScript (commander)
+- Uses `program.commands`, `program.options()`, and `program.registeredArguments`
+- `commander` auto-adds `--help`; filter it out
+- Hidden commands use `new Command("name", { hidden: true })`
+- Config: JSON via `fs.readFileSync` + `JSON.parse`
+
+### Go (cobra)
+- Uses `cmd.Commands()`, `cmd.Flags()`, and positional args via `cmd.Args`
+- `cobra` auto-adds `help` command and `--help` flag; filter both
+- Hidden commands use `cmd.Hidden = true`
+- Config: JSON via `encoding/json`

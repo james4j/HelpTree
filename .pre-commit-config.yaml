@@ -1,0 +1,83 @@
+# HelpTree pre-commit hooks
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Generic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Rust
+  - repo: local
+    hooks:
+      - id: rust-fmt
+        name: rust fmt
+        entry: bash -c 'cd rust && cargo fmt --check'
+        language: system
+        files: ^rust/.*\.rs$
+        pass_filenames: false
+
+      - id: rust-clippy
+        name: rust clippy
+        entry: bash -c 'cd rust && cargo clippy -- -D warnings'
+        language: system
+        files: ^rust/.*\.rs$
+        pass_filenames: false
+
+      - id: rust-test
+        name: rust test
+        entry: bash -c 'cd rust && cargo test'
+        language: system
+        files: ^rust/.*\.rs$
+        pass_filenames: false
+
+  # Python
+  - repo: local
+    hooks:
+      - id: python-compile
+        name: python compileall
+        entry: python -m compileall
+        language: system
+        files: ^python/.*\.py$
+
+  # TypeScript
+  - repo: local
+    hooks:
+      - id: tsc
+        name: tsc --noEmit
+        entry: bash -c 'cd typescript && npx tsc --noEmit'
+        language: system
+        files: ^typescript/.*\.ts$
+        pass_filenames: false
+
+  # Go
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: go fmt
+        entry: bash -c 'cd go && test -z "$(gofmt -l .)"'
+        language: system
+        files: ^go/.*\.go$
+        pass_filenames: false
+
+      - id: go-vet
+        name: go vet
+        entry: bash -c 'cd go && go vet ./...'
+        language: system
+        files: ^go/.*\.go$
+        pass_filenames: false
+
+      - id: go-build
+        name: go build
+        entry: bash -c 'cd go && go build ./...'
+        language: system
+        files: ^go/.*\.go$
+        pass_filenames: false

@@ -1,0 +1,9 @@
+myapp
+  -v, --verbose … Verbose output
+
+├── project [flags] ............. Manage projects
+│   ├── list [flags] ................ List all projects
+│   └── create <NAME> [flags] ....... Create a new project
+└── task [flags] ................ Manage tasks
+    ├── list [flags] ................ List all tasks
+    └── done <ID> [flags] ........... Mark a task as done

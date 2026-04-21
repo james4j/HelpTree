@@ -1,0 +1,25 @@
+# Rust
+rust/target/
+rust/Cargo.lock
+
+# Python
+python/__pycache__/
+python/*.egg-info/
+python/.pytest_cache/
+python/build/
+python/dist/
+
+# TypeScript
+typescript/node_modules/
+typescript/dist/
+
+# Go
+go/go.sum
+
+# General
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

@@ -1,0 +1,79 @@
+{
+  "type": "command",
+  "name": "myapp",
+  "description": "A canonical test CLI",
+  "options": [
+    {
+      "type": "option",
+      "name": "verbose",
+      "short": "-v",
+      "long": "--verbose",
+      "description": "Verbose output",
+      "required": false,
+      "takes_value": false
+    }
+  ],
+  "subcommands": [
+    {
+      "type": "command",
+      "name": "project",
+      "description": "Manage projects",
+      "options": [
+        {
+          "type": "option",
+          "name": "format",
+          "short": "-f",
+          "long": "--format",
+          "description": "Output format",
+          "required": false,
+          "takes_value": true
+        }
+      ],
+      "subcommands": [
+        {
+          "type": "command",
+          "name": "list",
+          "description": "List all projects"
+        },
+        {
+          "type": "command",
+          "name": "create",
+          "description": "Create a new project",
+          "arguments": [
+            {
+              "type": "argument",
+              "name": "NAME",
+              "description": "Project name",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "name": "task",
+      "description": "Manage tasks",
+      "subcommands": [
+        {
+          "type": "command",
+          "name": "list",
+          "description": "List all tasks"
+        },
+        {
+          "type": "command",
+          "name": "done",
+          "description": "Mark a task as done",
+          "arguments": [
+            {
+              "type": "argument",
+              "name": "ID",
+              "description": "Task ID",
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

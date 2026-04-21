@@ -1,0 +1,12 @@
+[theme]
+
+[theme.command]
+emphasis = "bold"
+color_hex = "#7ee7e6"
+
+[theme.options]
+emphasis = "normal"
+
+[theme.description]
+emphasis = "italic"
+color_hex = "#90a2af"

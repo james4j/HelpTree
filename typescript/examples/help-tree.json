@@ -1,0 +1,15 @@
+{
+  "theme": {
+    "command": {
+      "emphasis": "bold",
+      "colorHex": "#7ee7e6"
+    },
+    "options": {
+      "emphasis": "normal"
+    },
+    "description": {
+      "emphasis": "italic",
+      "colorHex": "#90a2af"
+    }
+  }
+}
