@@ -5,7 +5,7 @@ proc deepCmd(): TreeCommand =
   new(result)
   result.name = "deep"
   result.description = "A deeply nested CLI example (3 levels)"
-  result.options = @[
+  result.options = discoveryOptions() & @[
     TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
   ]
 

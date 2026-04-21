@@ -3,7 +3,7 @@ require_relative '../lib/help_tree'
 root = HelpTree::TreeCommand.new(
   name: 'deep',
   description: 'A deeply nested CLI example (3 levels)',
-  options: [
+  options: HelpTree::DISCOVERY_OPTIONS + [
     HelpTree::TreeOption.new(name: 'verbose', long: '--verbose', description: 'Verbose output', required: false,
                              takes_value: false)
   ]

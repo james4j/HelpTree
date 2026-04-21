@@ -8,7 +8,7 @@ hiddenTree :: TreeCommand
 hiddenTree = TreeCommand
   { cmdName = "hidden"
   , cmdDescription = "An example with hidden commands and flags"
-  , cmdOptions =
+  , cmdOptions = discoveryOptions ++
       [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False
       , TreeOption "debug" "" "--debug" "Enable debug mode" False False "" True
       ]

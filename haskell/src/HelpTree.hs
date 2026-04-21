@@ -12,6 +12,7 @@ module HelpTree
   , TreeArgument(..)
   , defaultOpts
   , defaultTheme
+  , discoveryOptions
   , parseHelpTreeInvocation
   , runHelpTree
   , loadConfig
@@ -151,6 +152,17 @@ defaultOpts = HelpTreeOpts
   , color       = ColorAuto
   , theme       = defaultTheme
   }
+
+discoveryOptions :: [TreeOption]
+discoveryOptions =
+  [ TreeOption "help-tree" "" "--help-tree" "Print a recursive command map derived from framework metadata" False False "" False
+  , TreeOption "tree-depth" "-L" "--tree-depth" "Limit --help-tree recursion depth (Unix tree -L style)" False True "" False
+  , TreeOption "tree-ignore" "-I" "--tree-ignore" "Exclude subtrees/commands from --help-tree output (repeatable)" False True "" False
+  , TreeOption "tree-all" "-a" "--tree-all" "Include hidden subcommands in --help-tree output" False False "" False
+  , TreeOption "tree-output" "" "--tree-output" "Output format (text or json)" False True "" False
+  , TreeOption "tree-style" "" "--tree-style" "Tree text styling mode (rich or plain)" False True "" False
+  , TreeOption "tree-color" "" "--tree-color" "Tree color mode (auto, always, never)" False True "" False
+  ]
 
 shouldUseColor :: HelpTreeOpts -> IO Bool
 shouldUseColor opts = case color opts of

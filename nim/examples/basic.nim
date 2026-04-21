@@ -5,7 +5,7 @@ proc basicCmd(): TreeCommand =
   new(result)
   result.name = "basic"
   result.description = "A basic example CLI with nested subcommands"
-  result.options = @[
+  result.options = discoveryOptions() & @[
     TreeOption(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takesValue: false)
   ]
 

@@ -62,6 +62,23 @@ module HelpTree
     end
   end
 
+  DISCOVERY_OPTIONS = [
+    TreeOption.new(name: 'help-tree', long: '--help-tree',
+                   description: 'Print a recursive command map derived from framework metadata', required: false, takes_value: false),
+    TreeOption.new(name: 'tree-depth', short: '-L', long: '--tree-depth',
+                   description: 'Limit --help-tree recursion depth (Unix tree -L style)', required: false, takes_value: true),
+    TreeOption.new(name: 'tree-ignore', short: '-I', long: '--tree-ignore',
+                   description: 'Exclude subtrees/commands from --help-tree output (repeatable)', required: false, takes_value: true),
+    TreeOption.new(name: 'tree-all', short: '-a', long: '--tree-all',
+                   description: 'Include hidden subcommands in --help-tree output', required: false, takes_value: false),
+    TreeOption.new(name: 'tree-output', long: '--tree-output', description: 'Output format (text or json)',
+                   required: false, takes_value: true),
+    TreeOption.new(name: 'tree-style', long: '--tree-style', description: 'Tree text styling mode (rich or plain)',
+                   required: false, takes_value: true),
+    TreeOption.new(name: 'tree-color', long: '--tree-color', description: 'Tree color mode (auto, always, never)',
+                   required: false, takes_value: true)
+  ].freeze
+
   def self.default_theme
     Theme.new
   end

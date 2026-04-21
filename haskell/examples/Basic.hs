@@ -8,7 +8,7 @@ basicTree :: TreeCommand
 basicTree = TreeCommand
   { cmdName = "basic"
   , cmdDescription = "A basic example CLI with nested subcommands"
-  , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+  , cmdOptions = discoveryOptions ++ [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
   , cmdArguments = []
   , cmdSubcommands = [project, task]
   , cmdHidden = False

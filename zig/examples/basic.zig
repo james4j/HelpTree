@@ -25,7 +25,7 @@ pub fn main() !void {
     const task_done = help_tree.TreeCommand{ .name = "done", .description = "Mark a task as done", .arguments = &.{.{ .name = "ID", .description = "Task ID", .required = true }}, .options = &.{verbose_opt} };
     const task = help_tree.TreeCommand{ .name = "task", .description = "Manage tasks", .options = &.{verbose_opt}, .subcommands = &.{ task_list, task_done } };
 
-    const root = help_tree.TreeCommand{ .name = "basic", .description = "A basic example CLI with nested subcommands", .options = &.{verbose_opt}, .subcommands = &.{ project, task } };
+    const root = help_tree.TreeCommand{ .name = "basic", .description = "A basic example CLI with nested subcommands", .options = &(help_tree.discovery_options.* ++ [_]help_tree.TreeOption{verbose_opt}), .subcommands = &.{ project, task } };
 
     try help_tree.runForTree(allocator, root, invocation.opts, invocation.path);
 }

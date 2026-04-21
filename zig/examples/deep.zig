@@ -40,7 +40,7 @@ pub fn main() !void {
 
     const client = help_tree.TreeCommand{ .name = "client", .description = "Client operations", .options = &.{verbose_opt}, .subcommands = &.{ auth, request } };
 
-    const root = help_tree.TreeCommand{ .name = "deep", .description = "A deeply nested CLI example (3 levels)", .options = &.{verbose_opt}, .subcommands = &.{ server, client } };
+    const root = help_tree.TreeCommand{ .name = "deep", .description = "A deeply nested CLI example (3 levels)", .options = &(help_tree.discovery_options.* ++ [_]help_tree.TreeOption{verbose_opt}), .subcommands = &.{ server, client } };
 
     try help_tree.runForTree(allocator, root, invocation.opts, invocation.path);
 }

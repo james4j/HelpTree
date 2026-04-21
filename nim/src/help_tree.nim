@@ -69,6 +69,17 @@ proc defaultOpts*(): HelpTreeOpts =
   result.color = Auto
   result.theme = defaultTheme()
 
+proc discoveryOptions*(): seq[TreeOption] =
+  @[
+    TreeOption(name: "help-tree", long: "--help-tree", description: "Print a recursive command map derived from framework metadata", required: false, takesValue: false),
+    TreeOption(name: "tree-depth", short: "-L", long: "--tree-depth", description: "Limit --help-tree recursion depth (Unix tree -L style)", required: false, takesValue: true),
+    TreeOption(name: "tree-ignore", short: "-I", long: "--tree-ignore", description: "Exclude subtrees/commands from --help-tree output (repeatable)", required: false, takesValue: true),
+    TreeOption(name: "tree-all", short: "-a", long: "--tree-all", description: "Include hidden subcommands in --help-tree output", required: false, takesValue: false),
+    TreeOption(name: "tree-output", long: "--tree-output", description: "Output format (text or json)", required: false, takesValue: true),
+    TreeOption(name: "tree-style", long: "--tree-style", description: "Tree text styling mode (rich or plain)", required: false, takesValue: true),
+    TreeOption(name: "tree-color", long: "--tree-color", description: "Tree color mode (auto, always, never)", required: false, takesValue: true),
+  ]
+
 proc shouldUseColor*(opts: HelpTreeOpts): bool =
   case opts.color
   of Always: true

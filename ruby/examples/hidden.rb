@@ -3,7 +3,7 @@ require_relative '../lib/help_tree'
 root = HelpTree::TreeCommand.new(
   name: 'hidden',
   description: 'An example with hidden commands and flags',
-  options: [
+  options: HelpTree::DISCOVERY_OPTIONS + [
     HelpTree::TreeOption.new(name: 'verbose', long: '--verbose', description: 'Verbose output', required: false,
                              takes_value: false),
     HelpTree::TreeOption.new(name: 'debug', long: '--debug', description: 'Enable debug mode', required: false,

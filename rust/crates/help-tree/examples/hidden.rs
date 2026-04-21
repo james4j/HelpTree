@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use help_tree::run_for_path;
+use help_tree::{run_for_path, HelpTreeColor, HelpTreeOutputFormat, HelpTreeStyle};
 
 #[derive(Parser)]
 #[command(name = "hidden")]
@@ -7,6 +7,54 @@ use help_tree::run_for_path;
 struct Cli {
     #[arg(long, global = true, help = "Verbose output")]
     verbose: bool,
+
+    #[arg(
+        long = "help-tree",
+        help = "Print a recursive command map derived from framework metadata"
+    )]
+    help_tree: bool,
+
+    #[arg(
+        long = "tree-depth",
+        short = 'L',
+        help = "Limit --help-tree recursion depth"
+    )]
+    tree_depth: Option<usize>,
+
+    #[arg(
+        long = "tree-ignore",
+        short = 'I',
+        help = "Exclude subtrees/commands from --help-tree output"
+    )]
+    tree_ignore: Vec<String>,
+
+    #[arg(
+        long = "tree-all",
+        short = 'a',
+        help = "Include hidden subcommands in --help-tree output"
+    )]
+    tree_all: bool,
+
+    #[arg(
+        long = "tree-output",
+        help = "Output format (text or json)",
+        value_enum
+    )]
+    tree_output: Option<HelpTreeOutputFormat>,
+
+    #[arg(
+        long = "tree-style",
+        help = "Tree text styling mode (rich or plain)",
+        value_enum
+    )]
+    tree_style: Option<HelpTreeStyle>,
+
+    #[arg(
+        long = "tree-color",
+        help = "Tree color mode (auto, always, never)",
+        value_enum
+    )]
+    tree_color: Option<HelpTreeColor>,
 
     #[arg(long, global = true, hide = true, help = "Enable debug mode")]
     debug: bool,

@@ -7,6 +7,27 @@ struct Deep: ParsableCommand {
         abstract: "A deeply nested CLI example (3 levels)",
         subcommands: [Server.self, Client.self]
     )
+
+    @Flag(name: .customLong("help-tree"), help: "Print a recursive command map derived from framework metadata")
+    var helpTree: Bool = false
+
+    @Option(name: [.customShort("L"), .customLong("tree-depth")], help: "Limit --help-tree recursion depth")
+    var treeDepth: Int?
+
+    @Option(name: [.customShort("I"), .customLong("tree-ignore")], help: "Exclude subtrees/commands from --help-tree output")
+    var treeIgnore: [String] = []
+
+    @Flag(name: [.customShort("a"), .customLong("tree-all")], help: "Include hidden subcommands in --help-tree output")
+    var treeAll: Bool = false
+
+    @Option(name: .customLong("tree-output"), help: "Output format (text or json)")
+    var treeOutput: String?
+
+    @Option(name: .customLong("tree-style"), help: "Tree text styling mode (rich or plain)")
+    var treeStyle: String?
+
+    @Option(name: .customLong("tree-color"), help: "Tree color mode (auto, always, never)")
+    var treeColor: String?
 }
 
 struct Server: ParsableCommand {

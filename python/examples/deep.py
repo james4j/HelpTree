@@ -14,6 +14,13 @@ def main():
         description="A deeply nested CLI example (3 levels)",
     )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
+    parser.add_argument("--help-tree", action="store_true", help="Print a recursive command map derived from framework metadata")
+    parser.add_argument("-L", "--tree-depth", type=int, help="Limit --help-tree recursion depth")
+    parser.add_argument("-I", "--tree-ignore", action="append", help="Exclude subtrees/commands from --help-tree output")
+    parser.add_argument("-a", "--tree-all", action="store_true", help="Include hidden subcommands in --help-tree output")
+    parser.add_argument("--tree-output", choices=["text", "json"], help="Output format")
+    parser.add_argument("--tree-style", choices=["rich", "plain"], help="Tree text styling mode")
+    parser.add_argument("--tree-color", choices=["auto", "always", "never"], help="Tree color mode")
 
     sub = parser.add_subparsers()
 

@@ -26,7 +26,7 @@ pub fn main() !void {
     const admin_secret = help_tree.TreeCommand{ .name = "secret", .description = "Secret backdoor" };
     const admin = help_tree.TreeCommand{ .name = "admin", .description = "Administrative commands", .hidden = true, .subcommands = &.{ admin_users, admin_stats, admin_secret } };
 
-    const root = help_tree.TreeCommand{ .name = "hidden", .description = "An example with hidden commands and flags", .options = &.{ verbose_opt, debug_opt }, .subcommands = &.{ list_cmd, show_cmd, admin } };
+    const root = help_tree.TreeCommand{ .name = "hidden", .description = "An example with hidden commands and flags", .options = &(help_tree.discovery_options.* ++ [_]help_tree.TreeOption{ verbose_opt, debug_opt }), .subcommands = &.{ list_cmd, show_cmd, admin } };
 
     try help_tree.runForTree(allocator, root, invocation.opts, invocation.path);
 }

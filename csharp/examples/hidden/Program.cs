@@ -4,6 +4,28 @@ using HelpTree;
 var root = new RootCommand("hidden") { Description = "Example with hidden commands and flags" };
 var verbose = new Option<bool>("--verbose", "Verbose output");
 root.AddGlobalOption(verbose);
+
+var helpTree = new Option<bool>("--help-tree", "Print a recursive command map derived from framework metadata");
+root.AddOption(helpTree);
+
+var treeDepth = new Option<int>(new[] { "-L", "--tree-depth" }, "Limit --help-tree recursion depth");
+root.AddOption(treeDepth);
+
+var treeIgnore = new Option<string>(new[] { "-I", "--tree-ignore" }, "Exclude subtrees/commands from --help-tree output");
+root.AddOption(treeIgnore);
+
+var treeAll = new Option<bool>(new[] { "-a", "--tree-all" }, "Include hidden subcommands in --help-tree output");
+root.AddOption(treeAll);
+
+var treeOutput = new Option<string>("--tree-output", "Output format (text or json)");
+root.AddOption(treeOutput);
+
+var treeStyle = new Option<string>("--tree-style", "Tree text styling mode (rich or plain)");
+root.AddOption(treeStyle);
+
+var treeColor = new Option<string>("--tree-color", "Tree color mode (auto, always, never)");
+root.AddOption(treeColor);
+
 var debug = new Option<bool>("--debug", "Enable debug mode");
 debug.IsHidden = true;
 root.AddGlobalOption(debug);

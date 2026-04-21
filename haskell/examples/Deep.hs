@@ -8,7 +8,7 @@ deepTree :: TreeCommand
 deepTree = TreeCommand
   { cmdName = "deep"
   , cmdDescription = "A deeply nested CLI example (3 levels)"
-  , cmdOptions = [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
+  , cmdOptions = discoveryOptions ++ [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False ]
   , cmdArguments = []
   , cmdSubcommands = [server, client]
   , cmdHidden = False

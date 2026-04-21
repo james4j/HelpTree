@@ -7,7 +7,7 @@ if invocation
   root = HelpTree::TreeCommand.new(
     name: "basic",
     description: "A basic example CLI with nested subcommands",
-    options: [
+    options: HelpTree::DISCOVERY_OPTIONS + [
       HelpTree::TreeOption.new(name: "verbose", long: "--verbose", description: "Verbose output", required: false, takes_value: false),
     ]
   )

@@ -13,6 +13,13 @@ func main() {
 		Short: "A deeply nested CLI example (3 levels)",
 	}
 	rootCmd.PersistentFlags().Bool("verbose", false, "Verbose output")
+	rootCmd.Flags().Bool("help-tree", false, "Print a recursive command map derived from framework metadata")
+	rootCmd.Flags().IntP("tree-depth", "L", 0, "Limit --help-tree recursion depth")
+	rootCmd.Flags().StringArrayP("tree-ignore", "I", nil, "Exclude subtrees/commands from --help-tree output")
+	rootCmd.Flags().BoolP("tree-all", "a", false, "Include hidden subcommands in --help-tree output")
+	rootCmd.Flags().String("tree-output", "", "Output format (text or json)")
+	rootCmd.Flags().String("tree-style", "", "Tree text styling mode (rich or plain)")
+	rootCmd.Flags().String("tree-color", "", "Tree color mode (auto, always, never)")
 
 	serverCmd := &cobra.Command{Use: "server", Short: "Server management"}
 
