@@ -71,6 +71,22 @@ java/build/
 java/.gradle/
 java/gradle.properties
 
+# Julia
+julia/Manifest.toml
+julia/Project.toml
+
+# Lua
+lua/examples/*.out
+
+# OCaml
+ocaml/examples/basic
+ocaml/examples/deep
+ocaml/examples/hidden
+ocaml/*.cmi
+ocaml/*.cmo
+ocaml/*.cmx
+ocaml/*.o
+
 # General
 .DS_Store
 *.swp

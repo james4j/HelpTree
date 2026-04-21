@@ -359,10 +359,77 @@ run_java() {
     run_cmd java "hidden all" gradle run -PmainClass=helptree.examples.Hidden --args="--help-tree -a"
 }
 
+# ── Julia ─────────────────────────────────────────────────────────
+run_julia() {
+    header "Julia (ArgParse)"
+    cd "${REPO_ROOT}/julia"
+
+    subheader "basic"
+    run_cmd julia "basic text" julia examples/basic.jl --help-tree
+    run_cmd julia "basic depth" julia examples/basic.jl --help-tree -L 1
+    run_cmd julia "basic json" julia examples/basic.jl --help-tree --tree-output json
+    run_cmd julia "basic path" julia examples/basic.jl project --help-tree
+
+    subheader "deep"
+    run_cmd julia "deep text" julia examples/deep.jl --help-tree
+    run_cmd julia "deep depth 1" julia examples/deep.jl --help-tree -L 1
+    run_cmd julia "deep depth 2" julia examples/deep.jl --help-tree -L 2
+    run_cmd julia "deep path" julia examples/deep.jl server config --help-tree
+
+    subheader "hidden"
+    run_cmd julia "hidden default" julia examples/hidden.jl --help-tree
+    run_cmd julia "hidden all" julia examples/hidden.jl --help-tree -a
+}
+
+# ── Lua ───────────────────────────────────────────────────────────
+run_lua() {
+    header "Lua (manual)"
+    cd "${REPO_ROOT}/lua"
+
+    subheader "basic"
+    run_cmd lua "basic text" lua examples/basic.lua --help-tree
+    run_cmd lua "basic depth" lua examples/basic.lua --help-tree -L 1
+    run_cmd lua "basic json" lua examples/basic.lua --help-tree --tree-output json
+    run_cmd lua "basic path" lua examples/basic.lua project --help-tree
+
+    subheader "deep"
+    run_cmd lua "deep text" lua examples/deep.lua --help-tree
+    run_cmd lua "deep depth 1" lua examples/deep.lua --help-tree -L 1
+    run_cmd lua "deep depth 2" lua examples/deep.lua --help-tree -L 2
+    run_cmd lua "deep path" lua examples/deep.lua server config --help-tree
+
+    subheader "hidden"
+    run_cmd lua "hidden default" lua examples/hidden.lua --help-tree
+    run_cmd lua "hidden all" lua examples/hidden.lua --help-tree -a
+}
+
+# ── OCaml ─────────────────────────────────────────────────────────
+run_ocaml() {
+    header "OCaml (manual)"
+    cd "${REPO_ROOT}/ocaml"
+    make basic deep hidden
+
+    subheader "basic"
+    run_cmd ocaml "basic text" ./examples/basic --help-tree
+    run_cmd ocaml "basic depth" ./examples/basic --help-tree -L 1
+    run_cmd ocaml "basic json" ./examples/basic --help-tree --tree-output json
+    run_cmd ocaml "basic path" ./examples/basic project --help-tree
+
+    subheader "deep"
+    run_cmd ocaml "deep text" ./examples/deep --help-tree
+    run_cmd ocaml "deep depth 1" ./examples/deep --help-tree -L 1
+    run_cmd ocaml "deep depth 2" ./examples/deep --help-tree -L 2
+    run_cmd ocaml "deep path" ./examples/deep server config --help-tree
+
+    subheader "hidden"
+    run_cmd ocaml "hidden default" ./examples/hidden --help-tree
+    run_cmd ocaml "hidden all" ./examples/hidden --help-tree -a
+}
+
 # ── Run all ───────────────────────────────────────────────────────
 run_all() {
     local failed=0
-    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java; do
+    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml; do
         if ! "run_${lang}" 2>&1; then
             failed=$((failed + 1))
             echo ""
@@ -387,12 +454,12 @@ if [[ $# -eq 0 ]]; then
 else
     LANG="$1"
     case "$LANG" in
-        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java)
+        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java|julia|lua|ocaml)
             "run_${LANG}" 2>&1
             ;;
         *)
             echo "Unknown language: $LANG"
-            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java"
+            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml"
             exit 1
             ;;
     esac

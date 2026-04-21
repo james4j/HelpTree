@@ -33,6 +33,9 @@ myapp
 | C | — | JSON | [`c/`](c/) |
 | C++ | `CLI11` | JSON | [`cpp/`](cpp/) |
 | Java | `picocli` | JSON | [`java/`](java/) |
+| Julia | `ArgParse` | JSON | [`julia/`](julia/) |
+| Lua | — | JSON | [`lua/`](lua/) |
+| OCaml | — | JSON | [`ocaml/`](ocaml/) |
 
 ## Quick Start
 

@@ -142,6 +142,28 @@ gradle run -PmainClass=helptree.examples.Deep --args="--help-tree -L 1"
 gradle run -PmainClass=helptree.examples.Hidden --args="--help-tree -a"
 ```
 
+### Julia
+```bash
+cd julia && julia examples/basic.jl --help-tree
+julia examples/deep.jl --help-tree -L 1
+julia examples/hidden.jl --help-tree -a
+```
+
+### Lua
+```bash
+cd lua && lua examples/basic.lua --help-tree
+lua examples/deep.lua --help-tree -L 1
+lua examples/hidden.lua --help-tree -a
+```
+
+### OCaml
+```bash
+cd ocaml && make basic deep hidden
+./examples/basic --help-tree
+./examples/deep --help-tree -L 1
+./examples/hidden --help-tree -a
+```
+
 ## Running All Examples
 
 A convenience script `run-all-examples.sh` at the repo root runs all examples across all languages:
