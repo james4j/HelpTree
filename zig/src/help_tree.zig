@@ -56,9 +56,20 @@ pub fn styleText(allocator: std.mem.Allocator, text: []const u8, token: TextToke
     var codes: [4]u8 = undefined;
     var code_count: usize = 0;
     switch (token.emphasis) {
-        .bold => { codes[code_count] = 1; code_count += 1; },
-        .italic => { codes[code_count] = 3; code_count += 1; },
-        .bold_italic => { codes[code_count] = 1; code_count += 1; codes[code_count] = 3; code_count += 1; },
+        .bold => {
+            codes[code_count] = 1;
+            code_count += 1;
+        },
+        .italic => {
+            codes[code_count] = 3;
+            code_count += 1;
+        },
+        .bold_italic => {
+            codes[code_count] = 1;
+            code_count += 1;
+            codes[code_count] = 3;
+            code_count += 1;
+        },
         .normal => {},
     }
 

@@ -4,7 +4,7 @@ Introspective `--help-tree` for optparse-applicative-based command-line interfac
 
 ## Install
 
-Add to `package.yaml` or `.cabal`:
+Add to `package.yaml`, `.cabal`, or `stack.yaml`:
 
 ```yaml
 dependencies:
@@ -41,24 +41,24 @@ main = do
 ### Basic (2 levels)
 
 ```bash
-cd haskell && cabal run basic -- --help-tree
-cabal run basic -- --help-tree -L 1
-cabal run basic -- --help-tree --tree-output json
-cabal run basic -- project --help-tree
+cd haskell && stack run basic -- --help-tree
+stack run basic -- --help-tree -L 1
+stack run basic -- --help-tree --tree-output json
+stack run basic -- project --help-tree
 ```
 
 ### Deep (3 levels)
 
 ```bash
-cabal run deep -- --help-tree
-cabal run deep -- --help-tree -L 1
-cabal run deep -- --help-tree -L 2
-cabal run deep -- server config --help-tree
+stack run deep -- --help-tree
+stack run deep -- --help-tree -L 1
+stack run deep -- --help-tree -L 2
+stack run deep -- server config --help-tree
 ```
 
 ### Hidden
 
 ```bash
-cabal run hidden -- --help-tree
-cabal run hidden -- --help-tree -a
+stack run hidden -- --help-tree
+stack run hidden -- --help-tree -a
 ```

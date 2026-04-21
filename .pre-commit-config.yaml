@@ -87,7 +87,7 @@ repos:
     hooks:
       - id: dotnet-build
         name: dotnet build
-        entry: bash -c 'command -v dotnet >/dev/null 2>&1 || exit 0; cd csharp && dotnet build --no-restore'
+        entry: bash -c 'cd csharp && dotnet build --no-restore'
         language: system
         files: ^csharp/.*\.cs$
         pass_filenames: false
@@ -97,7 +97,7 @@ repos:
     hooks:
       - id: swift-build
         name: swift build
-        entry: bash -c 'command -v swift >/dev/null 2>&1 || exit 0; cd swift && swift build'
+        entry: bash -c 'cd swift && swift build'
         language: system
         files: ^swift/.*\.swift$
         pass_filenames: false
@@ -107,7 +107,7 @@ repos:
     hooks:
       - id: nim-check
         name: nim check
-        entry: bash -c 'command -v nim >/dev/null 2>&1 || exit 0; cd nim && for f in src/*.nim; do nim check "$f"; done'
+        entry: bash -c 'cd nim && for f in src/*.nim; do nim check "$f"; done'
         language: system
         files: ^nim/.*\.nim$
         pass_filenames: false
@@ -117,7 +117,7 @@ repos:
     hooks:
       - id: crystal-format
         name: crystal tool format --check
-        entry: bash -c 'command -v crystal >/dev/null 2>&1 || exit 0; cd crystal && crystal tool format --check'
+        entry: bash -c 'cd crystal && crystal tool format --check'
         language: system
         files: ^crystal/.*\.cr$
         pass_filenames: false
@@ -127,7 +127,7 @@ repos:
     hooks:
       - id: ruby-syntax
         name: ruby -c
-        entry: bash -c 'command -v ruby >/dev/null 2>&1 || exit 0; ruby -c'
+        entry: bash -c 'ruby -c'
         language: system
         files: ^ruby/.*\.rb$
 
@@ -136,7 +136,7 @@ repos:
     hooks:
       - id: zig-fmt
         name: zig fmt --check
-        entry: bash -c 'command -v zig >/dev/null 2>&1 || exit 0; cd zig && zig fmt --check src/'
+        entry: bash -c 'cd zig && zig fmt --check src/'
         language: system
         files: ^zig/.*\.zig$
         pass_filenames: false
@@ -144,9 +144,9 @@ repos:
   # Haskell
   - repo: local
     hooks:
-      - id: cabal-build
-        name: cabal build
-        entry: bash -c 'command -v cabal >/dev/null 2>&1 || exit 0; cd haskell && cabal build'
+      - id: stack-build
+        name: stack build
+        entry: bash -c 'source ~/.zshrc 2>/dev/null; export PATH="$HOME/.ghcup/bin:$PATH"; cd haskell && stack build'
         language: system
         files: ^haskell/.*\.hs$
         pass_filenames: false

@@ -114,10 +114,10 @@ zig build run-hidden -- --help-tree -a
 
 ### Haskell
 ```bash
-cd haskell && cabal build
-cabal run basic -- --help-tree
-cabal run deep -- --help-tree -L 1
-cabal run hidden -- --help-tree -a
+cd haskell && stack build
+stack run basic -- --help-tree
+stack run deep -- --help-tree -L 1
+stack run hidden -- --help-tree -a
 ```
 
 ## Pre-commit Hooks

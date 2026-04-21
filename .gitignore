@@ -47,6 +47,7 @@ haskell/dist/
 haskell/dist-newstyle/
 haskell/.cabal-sandbox/
 haskell/cabal.sandbox.config
+haskell/.stack-work/
 
 # General
 .DS_Store

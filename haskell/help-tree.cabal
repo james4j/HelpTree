@@ -10,6 +10,7 @@ author: HelpTree Contributors
 
 library
   exposed-modules: HelpTree
+  hs-source-dirs: src
   build-depends:
     base >= 4.14 && < 5,
     aeson >= 2.0,
