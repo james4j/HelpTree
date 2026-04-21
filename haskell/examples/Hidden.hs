@@ -1,19 +1,40 @@
 {-# LANGUAGE ApplicativeDo #-}
 module Main where
 
-import Options.Applicative
 import HelpTree
 import System.Environment (getArgs)
 
-parser :: ParserInfo ()
-parser = info (pure () <**> helper) $ mconcat
-  [ progDesc "Example with hidden commands and flags"
-  , header "hidden"
-  ]
+hiddenTree :: TreeCommand
+hiddenTree = TreeCommand
+  { cmdName = "hidden"
+  , cmdDescription = "An example with hidden commands and flags"
+  , cmdOptions =
+      [ TreeOption "verbose" "" "--verbose" "Verbose output" False False "" False
+      , TreeOption "debug" "" "--debug" "Enable debug mode" False False "" True
+      ]
+  , cmdArguments = []
+  , cmdSubcommands = [list, showCmd, admin]
+  , cmdHidden = False
+  }
+  where
+    list = TreeCommand "list" "List items" [] [] [] False
+    showCmd = TreeCommand "show" "Show item details" [] [ TreeArgument "ID" "Item ID" True False ] [] False
+    admin = TreeCommand
+      { cmdName = "admin"
+      , cmdDescription = "Administrative commands"
+      , cmdOptions = []
+      , cmdArguments = []
+      , cmdSubcommands =
+          [ TreeCommand "users" "List all users" [] [] [] False
+          , TreeCommand "stats" "Show system stats" [] [] [] False
+          , TreeCommand "secret" "Secret backdoor" [] [] [] False
+          ]
+      , cmdHidden = True
+      }
 
 main :: IO ()
 main = do
     args <- getArgs
     case parseHelpTreeInvocation args of
-        Just invocation -> runHelpTree parser invocation
-        Nothing -> pure ()
+        Just invocation -> runHelpTree hiddenTree invocation
+        Nothing -> putStrLn "Run with --help-tree to see the command tree."

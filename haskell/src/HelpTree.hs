@@ -7,6 +7,9 @@ module HelpTree
   , HelpTreeTheme(..)
   , TextTokenTheme(..)
   , TextEmphasis(..)
+  , TreeCommand(..)
+  , TreeOption(..)
+  , TreeArgument(..)
   , defaultOpts
   , defaultTheme
   , parseHelpTreeInvocation
@@ -17,12 +20,10 @@ module HelpTree
 
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as BLC
 import Data.List (intercalate)
-import Data.Maybe (fromMaybe, isNothing, mapMaybe)
-import System.Console.ANSI
-import System.Environment (getArgs)
-import System.IO (hIsTerminalDevice, stdout)
-import qualified Options.Applicative as OA
+import Data.Maybe (mapMaybe)
+import System.IO (hIsTerminalDevice, hSetEncoding, stdout, utf8)
 
 data TextEmphasis = Normal | Bold | Italic | BoldItalic
   deriving (Show, Eq)
@@ -35,6 +36,12 @@ instance FromJSON TextEmphasis where
     "bold_italic"  -> pure BoldItalic
     _              -> fail $ "Unknown emphasis: " ++ show t
 
+instance ToJSON TextEmphasis where
+  toJSON Normal = String "normal"
+  toJSON Bold = String "bold"
+  toJSON Italic = String "italic"
+  toJSON BoldItalic = String "bold_italic"
+
 data TextTokenTheme = TextTokenTheme
   { emphasis  :: TextEmphasis
   , colorHex  :: Maybe String
@@ -44,6 +51,11 @@ instance FromJSON TextTokenTheme where
   parseJSON = withObject "TextTokenTheme" $ \o -> TextTokenTheme
     <$> o .:? "emphasis" .!= Normal
     <*> o .:? "color_hex"
+
+instance ToJSON TextTokenTheme where
+  toJSON (TextTokenTheme e c) = object $ ["emphasis" .= e] ++ ["color_hex" .= c | isJust c]
+    where isJust (Just _) = True
+          isJust Nothing  = False
 
 data HelpTreeTheme = HelpTreeTheme
   { command     :: TextTokenTheme
@@ -56,6 +68,9 @@ instance FromJSON HelpTreeTheme where
     <$> o .:? "command"     .!= TextTokenTheme Bold       (Just "#7ee7e6")
     <*> o .:? "options"     .!= TextTokenTheme Normal     Nothing
     <*> o .:? "description" .!= TextTokenTheme Italic     (Just "#90a2af")
+
+instance ToJSON HelpTreeTheme where
+  toJSON (HelpTreeTheme c o d) = object ["command" .= c, "options" .= o, "description" .= d]
 
 data HelpTreeOutputFormat = Text | Json
   deriving (Show, Eq)
@@ -88,6 +103,36 @@ data HelpTreeConfigFile = HelpTreeConfigFile
 instance FromJSON HelpTreeConfigFile where
   parseJSON = withObject "HelpTreeConfigFile" $ \o ->
     HelpTreeConfigFile <$> o .:? "theme"
+
+instance ToJSON HelpTreeConfigFile where
+  toJSON (HelpTreeConfigFile t) = object ["theme" .= t]
+
+data TreeOption = TreeOption
+  { optName        :: String
+  , optShort       :: String
+  , optLong        :: String
+  , optDescription :: String
+  , optRequired    :: Bool
+  , optTakesValue  :: Bool
+  , optDefaultVal  :: String
+  , optHidden      :: Bool
+  } deriving (Show, Eq)
+
+data TreeArgument = TreeArgument
+  { argName        :: String
+  , argDescription :: String
+  , argRequired    :: Bool
+  , argHidden      :: Bool
+  } deriving (Show, Eq)
+
+data TreeCommand = TreeCommand
+  { cmdName        :: String
+  , cmdDescription :: String
+  , cmdOptions     :: [TreeOption]
+  , cmdArguments   :: [TreeArgument]
+  , cmdSubcommands :: [TreeCommand]
+  , cmdHidden      :: Bool
+  } deriving (Show, Eq)
 
 defaultTheme :: HelpTreeTheme
 defaultTheme = HelpTreeTheme
@@ -173,9 +218,151 @@ applyConfig opts cfg = case configTheme cfg of
   Just t  -> opts { theme = t }
   Nothing -> opts
 
-runHelpTree :: OA.ParserInfo a -> HelpTreeInvocation -> IO ()
-runHelpTree parserInfo invocation = do
+-- ---------------------------------------------------------------------------
+-- Tree rendering
+-- ---------------------------------------------------------------------------
+
+shouldSkipOption :: TreeOption -> Bool -> Bool
+shouldSkipOption opt treeAll
+  | treeAll   = False
+  | optHidden opt = True
+  | optName opt == "help" || optName opt == "version" = True
+  | otherwise = False
+
+shouldSkipArgument :: TreeArgument -> Bool -> Bool
+shouldSkipArgument arg treeAll
+  | treeAll   = False
+  | argHidden arg = True
+  | otherwise = False
+
+shouldSkipCommand :: TreeCommand -> HelpTreeOpts -> Bool
+shouldSkipCommand cmd opts
+  | cmdName cmd == "help" = True
+  | cmdName cmd `elem` ignoreList opts = True
+  | not (treeAll opts) && cmdHidden cmd = True
+  | otherwise = False
+
+commandSignature :: TreeCommand -> Bool -> (String, String)
+commandSignature cmd treeAll =
+  let suffix = concatMap argSuffix (cmdArguments cmd)
+      argSuffix arg
+        | shouldSkipArgument arg treeAll = ""
+        | argRequired arg = " <" ++ argName arg ++ ">"
+        | otherwise = " [" ++ argName arg ++ "]"
+      hasFlags = any (\opt -> not (shouldSkipOption opt treeAll)) (cmdOptions cmd)
+      flagsSuffix = if hasFlags then " [flags]" else ""
+  in (cmdName cmd, suffix ++ flagsSuffix)
+
+renderTextLines :: TreeCommand -> String -> Int -> HelpTreeOpts -> IO [String]
+renderTextLines cmd prefix depth opts = do
+  let items = filter (\sub -> not (shouldSkipCommand sub opts)) (cmdSubcommands cmd)
+  if null items
+    then return []
+    else fmap concat $ mapM (renderItem items) (zip [0..] items)
+  where
+    atLimit = case depthLimit opts of
+                Just dl -> depth >= dl
+                Nothing -> False
+    renderItem allItems (idx, sub) = do
+      let isLast = idx == length allItems - 1
+          branch = if isLast then "└── " else "├── "
+          (name, suffix) = commandSignature sub (treeAll opts)
+          signature = name ++ suffix
+          about = cmdDescription sub
+      nameStyled <- styleText name (command (theme opts)) opts
+      suffixStyled <- styleText suffix (HelpTree.options (theme opts)) opts
+      let sigStyled = nameStyled ++ suffixStyled
+      line <- if not (null about)
+                then do
+                  let dotsLen = max 4 (28 - length signature)
+                      dots = replicate dotsLen '.'
+                  aboutStyled <- styleText about (description (theme opts)) opts
+                  return $ prefix ++ branch ++ sigStyled ++ " " ++ dots ++ " " ++ aboutStyled
+                else return $ prefix ++ branch ++ sigStyled
+      let extension = if isLast then "    " else "│   "
+      childLines <- if atLimit then return [] else renderTextLines sub (prefix ++ extension) (depth + 1) opts
+      return (line : childLines)
+
+renderOptLine :: HelpTreeOpts -> TreeOption -> IO (Maybe String)
+renderOptLine opts opt
+  | shouldSkipOption opt (treeAll opts) = return Nothing
+  | otherwise = do
+      let meta = if not (null (optShort opt)) && not (null (optLong opt))
+                 then optShort opt ++ ", " ++ optLong opt
+                 else if not (null (optLong opt))
+                 then optLong opt
+                 else if not (null (optShort opt))
+                 then optShort opt
+                 else optName opt
+          desc = optDescription opt
+      metaStyled <- styleText meta (HelpTree.options (theme opts)) opts
+      descStyled <- styleText desc (description (theme opts)) opts
+      return $ Just $ "  " ++ metaStyled ++ " … " ++ descStyled
+
+renderText :: TreeCommand -> HelpTreeOpts -> IO String
+renderText cmd opts = do
+  nameStyled <- styleText (cmdName cmd) (command (theme opts)) opts
+  optLines <- fmap catMaybes $ mapM (renderOptLine opts) (cmdOptions cmd)
+  treeLines <- renderTextLines cmd "" 0 opts
+  return $ intercalate "\n" ([nameStyled] ++ optLines ++ if null treeLines then [] else [""] ++ treeLines)
+  where
+    catMaybes = mapMaybe id
+
+optionToJson :: TreeOption -> Value
+optionToJson opt = object $ concat
+  [ ["type" .= ("option" :: String)]
+  , ["name" .= optName opt]
+  , ["description" .= optDescription opt | not (null (optDescription opt))]
+  , ["short" .= optShort opt | not (null (optShort opt))]
+  , ["long" .= optLong opt | not (null (optLong opt))]
+  , ["default" .= optDefaultVal opt | not (null (optDefaultVal opt))]
+  , ["required" .= optRequired opt]
+  , ["takes_value" .= optTakesValue opt]
+  ]
+
+argumentToJson :: TreeArgument -> Value
+argumentToJson arg = object $ concat
+  [ ["type" .= ("argument" :: String)]
+  , ["name" .= argName arg]
+  , ["description" .= argDescription arg | not (null (argDescription arg))]
+  , ["required" .= argRequired arg]
+  ]
+
+cmdToJson :: TreeCommand -> HelpTreeOpts -> Int -> Value
+cmdToJson cmd opts depth = object $ concat
+  [ ["type" .= ("command" :: String)]
+  , ["name" .= cmdName cmd]
+  , ["description" .= cmdDescription cmd | not (null (cmdDescription cmd))]
+  , ["options" .= filterOpts | not (null filterOpts)]
+  , ["arguments" .= filterArgs | not (null filterArgs)]
+  , ["subcommands" .= filterSubs | not (null filterSubs)]
+  ]
+  where
+    filterOpts = map optionToJson (filter (\opt -> not (shouldSkipOption opt (treeAll opts))) (cmdOptions cmd))
+    filterArgs = map argumentToJson (filter (\arg -> not (shouldSkipArgument arg (treeAll opts))) (cmdArguments cmd))
+    canRecurse = case depthLimit opts of
+                   Just dl -> depth < dl
+                   Nothing -> True
+    filterSubs = if canRecurse
+                 then map (\sub -> cmdToJson sub opts (depth + 1)) (filter (\sub -> not (shouldSkipCommand sub opts)) (cmdSubcommands cmd))
+                 else []
+
+findByPath :: TreeCommand -> [String] -> TreeCommand
+findByPath cmd [] = cmd
+findByPath cmd (token:tokens) =
+  case filter (\sub -> cmdName sub == token) (cmdSubcommands cmd) of
+    (sub:_) -> findByPath sub tokens
+    []      -> cmd
+
+runHelpTree :: TreeCommand -> HelpTreeInvocation -> IO ()
+runHelpTree root invocation = do
+  hSetEncoding stdout utf8
   let opts = invocationOpts invocation
-  putStrLn =<< styleText "myapp" (command (theme opts)) opts
-  putStrLn ""
-  putStrLn $ "Use `myapp <COMMAND> --help` for full details on arguments and flags."
+      selected = findByPath root (invocationPath invocation)
+  if output opts == Json
+    then BLC.putStrLn (encode (cmdToJson selected opts 0))
+    else do
+      txt <- renderText selected opts
+      putStrLn txt
+      putStrLn ""
+      putStrLn $ "Use `" ++ cmdName root ++ " <COMMAND> --help` for full details on arguments and flags."

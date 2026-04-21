@@ -70,6 +70,42 @@ module HelpTree
     end
   end
 
+  class TreeOption
+    property name : String
+    property short : String
+    property long : String
+    property description : String
+    property required : Bool
+    property takes_value : Bool
+    property default_val : String
+    property hidden : Bool
+
+    def initialize(@name = "", @short = "", @long = "", @description = "", @required = false, @takes_value = false, @default_val = "", @hidden = false)
+    end
+  end
+
+  class TreeArgument
+    property name : String
+    property description : String
+    property required : Bool
+    property hidden : Bool
+
+    def initialize(@name = "", @description = "", @required = false, @hidden = false)
+    end
+  end
+
+  class TreeCommand
+    property name : String
+    property description : String
+    property options : Array(TreeOption)
+    property arguments : Array(TreeArgument)
+    property subcommands : Array(TreeCommand)
+    property hidden : Bool
+
+    def initialize(@name = "", @description = "", @options = [] of TreeOption, @arguments = [] of TreeArgument, @subcommands = [] of TreeCommand, @hidden = false)
+    end
+  end
+
   def self.should_use_color?(opts : Opts) : Bool
     case opts.color
     when ColorPolicy::Always then true
@@ -114,13 +150,6 @@ module HelpTree
 
   def self.apply_config(opts : Opts, config : ConfigFile)
     opts.theme = config.theme if config.theme
-  end
-
-  def self.run_for_parser(_parser, opts : Opts)
-    # Simplified for OptionParser; actual implementation would introspect parser state
-    puts style_text("myapp", Theme.new.command, opts)
-    puts
-    puts "Use `myapp <COMMAND> --help` for full details on arguments and flags."
   end
 
   def self.parse_invocation(argv : Array(String)) : Invocation?
@@ -175,5 +204,176 @@ module HelpTree
     opts.style = style
     opts.color = color
     Invocation.new(opts, path)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tree rendering
+  # ---------------------------------------------------------------------------
+
+  def self.should_skip_option(opt : TreeOption, tree_all : Bool) : Bool
+    return false if tree_all
+    return true if opt.hidden
+    return true if opt.name == "help" || opt.name == "version"
+    false
+  end
+
+  def self.should_skip_argument(arg : TreeArgument, tree_all : Bool) : Bool
+    return false if tree_all
+    return true if arg.hidden
+    false
+  end
+
+  def self.should_skip_command(cmd : TreeCommand, opts : Opts) : Bool
+    return true if cmd.name == "help"
+    return true if opts.ignore.includes?(cmd.name)
+    return true if !opts.tree_all && cmd.hidden
+    false
+  end
+
+  def self.command_signature(cmd : TreeCommand, tree_all : Bool) : Tuple(String, String)
+    suffix = ""
+    cmd.arguments.each do |arg|
+      next if should_skip_argument(arg, tree_all)
+      if arg.required
+        suffix += " <#{arg.name}>"
+      else
+        suffix += " [#{arg.name}]"
+      end
+    end
+    has_flags = cmd.options.any? { |opt| !should_skip_option(opt, tree_all) }
+    suffix += " [flags]" if has_flags
+    {cmd.name, suffix}
+  end
+
+  def self.render_text_lines(cmd : TreeCommand, prefix : String, depth : Int32, opts : Opts, lines : Array(String))
+    items = cmd.subcommands.select { |sub| !should_skip_command(sub, opts) }
+    return if items.empty?
+
+    at_limit = opts.depth_limit && depth >= opts.depth_limit.not_nil!
+
+    items.each_with_index do |sub, i|
+      is_last = i == items.size - 1
+      branch = is_last ? "└── " : "├── "
+      name, suffix = command_signature(sub, opts.tree_all)
+      signature = name + suffix
+      about = sub.description
+      sig_styled = style_text(name, opts.theme.command, opts) + style_text(suffix, opts.theme.options, opts)
+
+      if about.size > 0
+        dots_len = Math.max(4, 28 - signature.size)
+        dots = "." * dots_len
+        line = "#{prefix}#{branch}#{sig_styled} #{dots} #{style_text(about, opts.theme.description, opts)}"
+      else
+        line = "#{prefix}#{branch}#{sig_styled}"
+      end
+      lines << line
+
+      next if at_limit
+
+      extension = is_last ? "    " : "│   "
+      render_text_lines(sub, prefix + extension, depth + 1, opts, lines)
+    end
+  end
+
+  def self.render_text(cmd : TreeCommand, opts : Opts) : String
+    lines = [] of String
+    lines << style_text(cmd.name, opts.theme.command, opts)
+
+    cmd.options.each do |opt|
+      next if should_skip_option(opt, opts.tree_all)
+      meta = if opt.short.size > 0 && opt.long.size > 0
+               "#{opt.short}, #{opt.long}"
+             elsif opt.long.size > 0
+               opt.long
+             elsif opt.short.size > 0
+               opt.short
+             else
+               opt.name
+             end
+      lines << "  #{style_text(meta, opts.theme.options, opts)} … #{style_text(opt.description, opts.theme.description, opts)}"
+    end
+
+    unless cmd.subcommands.empty?
+      lines << ""
+      render_text_lines(cmd, "", 0, opts, lines)
+    end
+
+    lines.join("\n")
+  end
+
+  def self.option_to_json(opt : TreeOption, tree_all : Bool) : JSON::Any
+    obj = {} of String => JSON::Any
+    obj["type"] = JSON::Any.new("option")
+    obj["name"] = JSON::Any.new(opt.name)
+    obj["description"] = JSON::Any.new(opt.description) if opt.description.size > 0
+    obj["short"] = JSON::Any.new(opt.short) if opt.short.size > 0
+    obj["long"] = JSON::Any.new(opt.long) if opt.long.size > 0
+    obj["default"] = JSON::Any.new(opt.default_val) if opt.default_val.size > 0
+    obj["required"] = JSON::Any.new(opt.required)
+    obj["takes_value"] = JSON::Any.new(opt.takes_value)
+    JSON::Any.new(obj)
+  end
+
+  def self.argument_to_json(arg : TreeArgument, tree_all : Bool) : JSON::Any
+    obj = {} of String => JSON::Any
+    obj["type"] = JSON::Any.new("argument")
+    obj["name"] = JSON::Any.new(arg.name)
+    obj["description"] = JSON::Any.new(arg.description) if arg.description.size > 0
+    obj["required"] = JSON::Any.new(arg.required)
+    JSON::Any.new(obj)
+  end
+
+  def self.to_json(cmd : TreeCommand, opts : Opts, depth : Int32) : JSON::Any
+    obj = {} of String => JSON::Any
+    obj["type"] = JSON::Any.new("command")
+    obj["name"] = JSON::Any.new(cmd.name)
+    obj["description"] = JSON::Any.new(cmd.description) if cmd.description.size > 0
+
+    opts_arr = [] of JSON::Any
+    cmd.options.each do |opt|
+      next if should_skip_option(opt, opts.tree_all)
+      opts_arr << option_to_json(opt, opts.tree_all)
+    end
+    obj["options"] = JSON::Any.new(opts_arr) unless opts_arr.empty?
+
+    args_arr = [] of JSON::Any
+    cmd.arguments.each do |arg|
+      next if should_skip_argument(arg, opts.tree_all)
+      args_arr << argument_to_json(arg, opts.tree_all)
+    end
+    obj["arguments"] = JSON::Any.new(args_arr) unless args_arr.empty?
+
+    can_recurse = opts.depth_limit.nil? || depth < opts.depth_limit.not_nil!
+    if can_recurse
+      subs = [] of JSON::Any
+      cmd.subcommands.each do |sub|
+        next if should_skip_command(sub, opts)
+        subs << to_json(sub, opts, depth + 1)
+      end
+      obj["subcommands"] = JSON::Any.new(subs) unless subs.empty?
+    end
+
+    JSON::Any.new(obj)
+  end
+
+  def self.find_by_path(cmd : TreeCommand, path : Array(String)) : TreeCommand
+    result = cmd
+    path.each do |token|
+      found = result.subcommands.find { |sub| sub.name == token }
+      break unless found
+      result = found
+    end
+    result
+  end
+
+  def self.run_for_parser(root : TreeCommand, opts : Opts, requested_path : Array(String) = [] of String)
+    selected = find_by_path(root, requested_path)
+    if opts.output == OutputFormat::Json
+      puts to_json(selected, opts, 0).to_json
+    else
+      puts render_text(selected, opts)
+      puts ""
+      puts "Use `#{root.name} <COMMAND> --help` for full details on arguments and flags."
+    end
   end
 end
