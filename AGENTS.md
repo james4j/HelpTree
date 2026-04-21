@@ -164,6 +164,14 @@ cd ocaml && make basic deep hidden
 ./examples/hidden --help-tree -a
 ```
 
+### Kotlin
+```bash
+cd kotlin && gradle build
+gradle run --args="--help-tree"
+gradle runDeep --args="--help-tree -L 1"
+gradle runHidden --args="--help-tree -a"
+```
+
 ## Running All Examples
 
 A convenience script `run-all-examples.sh` at the repo root runs all examples across all languages:

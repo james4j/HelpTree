@@ -403,6 +403,29 @@ run_lua() {
     run_cmd lua "hidden all" lua examples/hidden.lua --help-tree -a
 }
 
+# ── Kotlin ────────────────────────────────────────────────────────
+run_kotlin() {
+    header "Kotlin (Clikt)"
+    cd "${REPO_ROOT}/kotlin"
+    gradle build >/dev/null 2>&1
+
+    subheader "basic"
+    run_cmd kotlin "basic text" gradle run --args="--help-tree"
+    run_cmd kotlin "basic depth" gradle run --args="--help-tree -L 1"
+    run_cmd kotlin "basic json" gradle run --args="--help-tree --tree-output json"
+    run_cmd kotlin "basic path" gradle run --args="project --help-tree"
+
+    subheader "deep"
+    run_cmd kotlin "deep text" gradle runDeep --args="--help-tree"
+    run_cmd kotlin "deep depth 1" gradle runDeep --args="--help-tree -L 1"
+    run_cmd kotlin "deep depth 2" gradle runDeep --args="--help-tree -L 2"
+    run_cmd kotlin "deep path" gradle runDeep --args="server config --help-tree"
+
+    subheader "hidden"
+    run_cmd kotlin "hidden default" gradle runHidden --args="--help-tree"
+    run_cmd kotlin "hidden all" gradle runHidden --args="--help-tree -a"
+}
+
 # ── OCaml ─────────────────────────────────────────────────────────
 run_ocaml() {
     header "OCaml (manual)"
@@ -429,7 +452,7 @@ run_ocaml() {
 # ── Run all ───────────────────────────────────────────────────────
 run_all() {
     local failed=0
-    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml; do
+    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin; do
         if ! "run_${lang}" 2>&1; then
             failed=$((failed + 1))
             echo ""
@@ -454,12 +477,12 @@ if [[ $# -eq 0 ]]; then
 else
     LANG="$1"
     case "$LANG" in
-        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java|julia|lua|ocaml)
+        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java|julia|lua|ocaml|kotlin)
             "run_${LANG}" 2>&1
             ;;
         *)
             echo "Unknown language: $LANG"
-            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml"
+            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin"
             exit 1
             ;;
     esac

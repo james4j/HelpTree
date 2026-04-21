@@ -33,6 +33,7 @@ myapp
 | C | — | JSON | [`c/`](c/) |
 | C++ | `CLI11` | JSON | [`cpp/`](cpp/) |
 | Java | `picocli` | JSON | [`java/`](java/) |
+| Kotlin | `clikt` | JSON | [`kotlin/`](kotlin/) |
 | Julia | `ArgParse` | JSON | [`julia/`](julia/) |
 | Lua | — | JSON | [`lua/`](lua/) |
 | OCaml | — | JSON | [`ocaml/`](ocaml/) |

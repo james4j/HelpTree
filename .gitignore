@@ -71,6 +71,10 @@ java/build/
 java/.gradle/
 java/gradle.properties
 
+# Kotlin
+kotlin/build/
+kotlin/.gradle/
+
 # Julia
 julia/Manifest.toml
 julia/Project.toml
