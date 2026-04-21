@@ -9,13 +9,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${SCRIPT_DIR}"
 
-# Colors for output
-BOLD='\033[1m'
-RESET='\033[0m'
-GREEN='\033[32m'
-RED='\033[31m'
-YELLOW='\033[33m'
-CYAN='\033[36m'
+# Colors for output (using $'...' C-style strings for actual escape bytes)
+BOLD=$'\033[1m'
+RESET=$'\033[0m'
+GREEN=$'\033[32m'
+RED=$'\033[31m'
+YELLOW=$'\033[33m'
+CYAN=$'\033[36m'
 
 header() {
     echo ""
@@ -141,20 +141,20 @@ run_csharp() {
     cd "${REPO_ROOT}/csharp"
 
     subheader "basic"
-    run_cmd csharp "basic text" bash -c "cd examples/basic && dotnet run -- --help-tree"
-    run_cmd csharp "basic depth" bash -c "cd examples/basic && dotnet run -- --help-tree -L 1"
-    run_cmd csharp "basic json" bash -c "cd examples/basic && dotnet run -- --help-tree --tree-output json"
-    run_cmd csharp "basic path" bash -c "cd examples/basic && dotnet run -- project --help-tree"
+    run_cmd csharp "basic text" bash -c "cd examples/basic && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree"
+    run_cmd csharp "basic depth" bash -c "cd examples/basic && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree -L 1"
+    run_cmd csharp "basic json" bash -c "cd examples/basic && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree --tree-output json"
+    run_cmd csharp "basic path" bash -c "cd examples/basic && MSBUILDTERMINALLOGGER=off dotnet run -- project --help-tree"
 
     subheader "deep"
-    run_cmd csharp "deep text" bash -c "cd examples/deep && dotnet run -- --help-tree"
-    run_cmd csharp "deep depth 1" bash -c "cd examples/deep && dotnet run -- --help-tree -L 1"
-    run_cmd csharp "deep depth 2" bash -c "cd examples/deep && dotnet run -- --help-tree -L 2"
-    run_cmd csharp "deep path" bash -c "cd examples/deep && dotnet run -- server config --help-tree"
+    run_cmd csharp "deep text" bash -c "cd examples/deep && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree"
+    run_cmd csharp "deep depth 1" bash -c "cd examples/deep && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree -L 1"
+    run_cmd csharp "deep depth 2" bash -c "cd examples/deep && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree -L 2"
+    run_cmd csharp "deep path" bash -c "cd examples/deep && MSBUILDTERMINALLOGGER=off dotnet run -- server config --help-tree"
 
     subheader "hidden"
-    run_cmd csharp "hidden default" bash -c "cd examples/hidden && dotnet run -- --help-tree"
-    run_cmd csharp "hidden all" bash -c "cd examples/hidden && dotnet run -- --help-tree -a"
+    run_cmd csharp "hidden default" bash -c "cd examples/hidden && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree"
+    run_cmd csharp "hidden all" bash -c "cd examples/hidden && MSBUILDTERMINALLOGGER=off dotnet run -- --help-tree -a"
 }
 
 # ── Swift ─────────────────────────────────────────────────────────
