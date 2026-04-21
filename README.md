@@ -131,7 +131,20 @@ Every language ships three examples:
 | `deep` | 3-level nesting, depth limits (`-L 1`, `-L 2`) |
 | `hidden` | Hidden commands/flags revealed with `--tree-all` / `-a` |
 
-See [`AGENTS.md`](AGENTS.md) for the full run command matrix.
+Run them all with the convenience script:
+
+```bash
+# All languages
+./run-all-examples.sh
+
+# Just one language
+./run-all-examples.sh rust
+./run-all-examples.sh python
+./run-all-examples.sh go
+# ... etc
+```
+
+See [`AGENTS.md`](AGENTS.md) for the full per-language run command matrix.
 
 ## Specification
 

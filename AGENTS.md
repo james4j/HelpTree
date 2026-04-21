@@ -120,6 +120,23 @@ stack run deep -- --help-tree -L 1
 stack run hidden -- --help-tree -a
 ```
 
+## Running All Examples
+
+A convenience script `run-all-examples.sh` at the repo root runs all examples across all languages:
+
+```bash
+# Run every language's basic, deep, and hidden examples
+./run-all-examples.sh
+
+# Run only one language
+./run-all-examples.sh rust
+./run-all-examples.sh python
+./run-all-examples.sh go
+# ... etc
+```
+
+The script demonstrates `--help-tree`, `--help-tree -L 1`, `--help-tree --tree-output json`, `--help-tree -a`, and subcommand path targeting for each language.
+
 ## Pre-commit Hooks
 
 All commits are guarded by pre-commit hooks defined in `.pre-commit-config.yaml`.
