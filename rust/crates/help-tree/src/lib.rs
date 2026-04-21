@@ -572,7 +572,7 @@ fn command_to_json(
     }
 
     let mut children = Vec::new();
-    let can_recurse = depth_limit.map_or(true, |max| depth < max);
+    let can_recurse = depth_limit.is_none_or(|max| depth < max);
     if can_recurse {
         for sub in cmd.get_subcommands() {
             if should_skip_subcommand(sub, ignore, tree_all) {
