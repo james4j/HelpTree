@@ -272,11 +272,8 @@ run_haskell() {
     header "Haskell (optparse-applicative)"
     cd "${REPO_ROOT}/haskell"
 
-    # Ensure stack is in PATH for non-interactive shells
-    if [[ -f ~/.zshrc ]]; then
-        source ~/.zshrc 2>/dev/null || true
-    fi
-    export PATH="${HOME}/.ghcup/bin:${PATH}"
+    # Ensure ghcup/stack are in PATH for non-interactive shells
+    export PATH="${HOME}/.ghcup/bin:${HOME}/.local/bin:${PATH}"
 
     subheader "basic"
     run_cmd haskell "basic text" stack run basic -- --help-tree
