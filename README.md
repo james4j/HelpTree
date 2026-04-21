@@ -130,6 +130,43 @@ See [`AGENTS.md`](AGENTS.md) for the full run command matrix.
 
 Shared behavior across all implementations is documented in [`docs/specification.md`](docs/specification.md).
 
+## Development Setup
+
+This repo uses [pre-commit](https://pre-commit.com) hooks to enforce formatting, linting, and tests across all four languages.
+
+With [uv](https://docs.astral.sh/uv/) installed:
+
+```bash
+# Create the virtual environment
+uv venv
+
+# Install pre-commit
+uv pip install pre-commit
+
+# Activate the environment and install git hooks
+source .venv/bin/activate
+pre-commit install
+
+# Run all hooks manually (useful before pushing)
+pre-commit run --all-files
+```
+
+Or run pre-commit directly without activating:
+
+```bash
+.venv/bin/pre-commit run --all-files
+```
+
+### Hooks enforced
+
+| Hook | Language | What it checks |
+|------|----------|---------------|
+| `rust-fmt` / `rust-clippy` / `rust-test` | Rust | Format, lint, and test |
+| `python-compileall` | Python | Syntax validation |
+| `tsc --noEmit` | TypeScript | Type checking |
+| `go-fmt` / `go-vet` / `go-build` | Go | Format, lint, and build |
+| Generic hooks | All | Trailing whitespace, YAML/JSON/TOML validity, large files, merge conflicts |
+
 ## License
 
 MIT

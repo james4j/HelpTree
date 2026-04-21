@@ -71,6 +71,47 @@ cd examples/deep && go run . --help-tree -L 1
 cd examples/hidden && go run . --help-tree -a
 ```
 
+## Pre-commit Hooks
+
+All commits are guarded by pre-commit hooks defined in `.pre-commit-config.yaml`.
+
+### Setup with uv
+
+```bash
+# Create virtual environment
+uv venv
+
+# Install pre-commit into the venv
+uv pip install pre-commit
+
+# Activate and install git hooks
+source .venv/bin/activate
+pre-commit install
+```
+
+### Running hooks
+
+Run all hooks on every file (useful before pushing):
+
+```bash
+pre-commit run --all-files
+```
+
+Run without activating the venv:
+
+```bash
+.venv/bin/pre-commit run --all-files
+```
+
+Run hooks for a specific language only:
+
+```bash
+pre-commit run rust-clippy
+pre-commit run python-compileall
+pre-commit run tsc
+pre-commit run go-vet
+```
+
 ## Adding a New Language
 
 1. Create `<lang>/` directory with README and build config
@@ -78,4 +119,4 @@ cd examples/hidden && go run . --help-tree -a
 3. Add three examples under `<lang>/examples/`: `basic`, `deep`, `hidden`
 4. Update root README language table
 5. Add language-specific notes to `docs/specification.md`
-6. Add build/test commands to this file
+6. Add build/test commands and pre-commit hooks to this file
