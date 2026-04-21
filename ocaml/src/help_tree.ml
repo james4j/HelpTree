@@ -1,9 +1,12 @@
 type opt = {
   name : string;
-  short : char option;
+  short : string;
+  long : string;
   description : string;
+  required : bool;
+  takes_value : bool;
+  default_val : string;
   hidden : bool;
-  arg : string option;
 }
 
 type arg = {
@@ -16,10 +19,10 @@ type arg = {
 type cmd = {
   name : string;
   description : string;
-  hidden : bool;
   options : opt list;
   arguments : arg list;
   subcommands : cmd list;
+  hidden : bool;
 }
 
 type discovery_options = {
@@ -32,11 +35,288 @@ type discovery_options = {
   tree_color : string option;
 }
 
+type theme_token = {
+  emphasis : string;
+  color_hex : string option;
+}
+
+type theme = {
+  command : theme_token;
+  options : theme_token;
+  description : theme_token;
+}
+
+let default_theme () = {
+  command = { emphasis = "bold"; color_hex = Some "#7ee7e6" };
+  options = { emphasis = "normal"; color_hex = None };
+  description = { emphasis = "italic"; color_hex = Some "#90a2af" };
+}
+
+let parse_hex_rgb hex =
+  let h = if String.length hex > 0 && hex.[0] = '#' then String.sub hex 1 (String.length hex - 1) else hex in
+  if String.length h <> 6 then None
+  else try
+    let r = int_of_string ("0x" ^ String.sub h 0 2) in
+    let g = int_of_string ("0x" ^ String.sub h 2 2) in
+    let b = int_of_string ("0x" ^ String.sub h 4 2) in
+    Some (r, g, b)
+  with Failure _ -> None
+
+let is_tty () =
+  try
+    let stat = Unix.stat "/dev/stdout" in
+    stat.Unix.st_kind = Unix.S_CHR
+  with _ -> false
+
+let use_color opts =
+  match opts.tree_color with
+  | Some "always" -> true
+  | Some "never" -> false
+  | _ -> is_tty ()
+
+let use_rich_style opts =
+  match opts.tree_style with
+  | Some "plain" -> false
+  | _ -> true
+
+let style_text text token opts =
+  if not (use_rich_style opts) ||
+     (token.emphasis = "normal" && token.color_hex = None) then
+    text
+  else
+    let codes = ref [] in
+    (match token.emphasis with
+     | "bold" -> codes := "1" :: !codes
+     | "italic" -> codes := "3" :: !codes
+     | "bold_italic" -> codes := "1" :: "3" :: !codes
+     | _ -> ());
+    (if use_color opts then
+       match token.color_hex with
+       | Some hex ->
+           (match parse_hex_rgb hex with
+            | Some (r, g, b) -> codes := Printf.sprintf "38;2;%d;%d;%d" r g b :: !codes
+            | None -> ())
+       | None -> ());
+    if !codes = [] then text
+    else "\027[" ^ String.concat ";" (List.rev !codes) ^ "m" ^ text ^ "\027[0m"
+
+let should_skip_option (opt : opt) tree_all =
+  if tree_all then false
+  else if opt.hidden then true
+  else if opt.name = "help" || opt.name = "version" then true
+  else false
+
+let should_skip_argument (arg : arg) tree_all =
+  if tree_all then false
+  else if arg.hidden then true
+  else false
+
+let should_skip_command (cmd : cmd) opts =
+  if cmd.name = "help" then true
+  else if List.mem cmd.name opts.tree_ignore then true
+  else if not opts.tree_all && cmd.hidden then true
+  else false
+
+let command_signature (cmd : cmd) tree_all =
+  let suffix = ref "" in
+  List.iter (fun (arg : arg) ->
+    if not (should_skip_argument arg tree_all) then
+      suffix := !suffix ^ (if arg.required then " <" ^ arg.name ^ ">" else " [" ^ arg.name ^ "]")
+  ) cmd.arguments;
+  let has_flags = List.exists (fun (opt : opt) -> not (should_skip_option opt tree_all)) cmd.options in
+  if has_flags then suffix := !suffix ^ " [flags]";
+  (cmd.name, !suffix)
+
+let rec render_text_lines buf (cmd : cmd) prefix depth opts =
+  let items = List.filter (fun (sub : cmd) -> not (should_skip_command sub opts)) cmd.subcommands in
+  if items = [] then ()
+  else
+    let at_limit = match opts.tree_depth with Some dl -> depth >= dl | None -> false in
+    let rec render_item idx = function
+      | [] -> ()
+      | sub :: rest ->
+          let is_last = idx = List.length items - 1 in
+          let branch = if is_last then "└── " else "├── " in
+          let name, suffix = command_signature sub opts.tree_all in
+          let signature = name ^ suffix in
+          let about = sub.description in
+          let t = default_theme () in
+          let name_styled = style_text name t.command opts in
+          let suffix_styled = style_text suffix t.options opts in
+          Buffer.add_string buf (prefix ^ branch ^ name_styled ^ suffix_styled);
+          if about <> "" then begin
+            let sig_len = String.length signature in
+            let dots_len = max 4 (28 - sig_len) in
+            Buffer.add_string buf (" " ^ String.make dots_len '.' ^ " ");
+            Buffer.add_string buf (style_text about t.description opts)
+          end;
+          Buffer.add_string buf "\n";
+          if not at_limit then begin
+            let extension = if is_last then "    " else "│   " in
+            render_text_lines buf sub (prefix ^ extension) (depth + 1) opts
+          end;
+          render_item (idx + 1) rest
+    in
+    render_item 0 items
+
+let render_text buf (cmd : cmd) opts =
+  let t = default_theme () in
+  Buffer.add_string buf (style_text cmd.name t.command opts);
+  Buffer.add_string buf "\n";
+  List.iter (fun (opt : opt) ->
+    if not (should_skip_option opt opts.tree_all) then begin
+      let meta =
+        if opt.short <> "" && opt.long <> "" then opt.short ^ ", " ^ opt.long
+        else if opt.long <> "" then opt.long
+        else if opt.short <> "" then opt.short
+        else opt.name
+      in
+      Buffer.add_string buf ("  " ^ style_text meta t.options opts ^ " … " ^ style_text opt.description t.description opts);
+      Buffer.add_string buf "\n"
+    end
+  ) cmd.options;
+  if cmd.subcommands <> [] then begin
+    Buffer.add_string buf "\n";
+    render_text_lines buf cmd "" 0 opts
+  end
+
+let escape_json s =
+  let buf = Buffer.create (String.length s * 2) in
+  String.iter (function
+    | '"' -> Buffer.add_string buf "\\\""
+    | '\\' -> Buffer.add_string buf "\\\\"
+    | '\b' -> Buffer.add_string buf "\\b"
+    | '\n' -> Buffer.add_string buf "\\n"
+    | '\r' -> Buffer.add_string buf "\\r"
+    | '\t' -> Buffer.add_string buf "\\t"
+    | c -> Buffer.add_char buf c
+  ) s;
+  Buffer.contents buf
+
+let option_to_json buf (opt : opt) =
+  Buffer.add_string buf "{\"type\":\"option\",\"name\":\"";
+  Buffer.add_string buf (escape_json opt.name);
+  Buffer.add_string buf "\"";
+  if opt.description <> "" then begin
+    Buffer.add_string buf ",\"description\":\"";
+    Buffer.add_string buf (escape_json opt.description);
+    Buffer.add_string buf "\""
+  end;
+  if opt.short <> "" then begin
+    Buffer.add_string buf ",\"short\":\"";
+    Buffer.add_string buf (escape_json opt.short);
+    Buffer.add_string buf "\""
+  end;
+  if opt.long <> "" then begin
+    Buffer.add_string buf ",\"long\":\"";
+    Buffer.add_string buf (escape_json opt.long);
+    Buffer.add_string buf "\""
+  end;
+  if opt.default_val <> "" then begin
+    Buffer.add_string buf ",\"default\":\"";
+    Buffer.add_string buf (escape_json opt.default_val);
+    Buffer.add_string buf "\""
+  end;
+  Buffer.add_string buf ",\"required\":";
+  Buffer.add_string buf (if opt.required then "true" else "false");
+  Buffer.add_string buf ",\"takes_value\":";
+  Buffer.add_string buf (if opt.takes_value then "true" else "false");
+  Buffer.add_string buf "}"
+
+let argument_to_json buf (arg : arg) =
+  Buffer.add_string buf "{\"type\":\"argument\",\"name\":\"";
+  Buffer.add_string buf (escape_json arg.name);
+  Buffer.add_string buf "\"";
+  if arg.description <> "" then begin
+    Buffer.add_string buf ",\"description\":\"";
+    Buffer.add_string buf (escape_json arg.description);
+    Buffer.add_string buf "\""
+  end;
+  Buffer.add_string buf ",\"required\":";
+  Buffer.add_string buf (if arg.required then "true" else "false");
+  Buffer.add_string buf "}"
+
+let rec cmd_to_json buf (cmd : cmd) opts depth =
+  Buffer.add_string buf "{\"type\":\"command\",\"name\":\"";
+  Buffer.add_string buf (escape_json cmd.name);
+  Buffer.add_string buf "\"";
+  if cmd.description <> "" then begin
+    Buffer.add_string buf ",\"description\":\"";
+    Buffer.add_string buf (escape_json cmd.description);
+    Buffer.add_string buf "\""
+  end;
+  let opts_arr = List.filter (fun opt -> not (should_skip_option opt opts.tree_all)) cmd.options in
+  if opts_arr <> [] then begin
+    Buffer.add_string buf ",\"options\":[";
+    let rec render_opts first = function
+      | [] -> ()
+      | hd :: tl ->
+          if not first then Buffer.add_string buf ",";
+          option_to_json buf hd;
+          render_opts false tl
+    in
+    render_opts true opts_arr;
+    Buffer.add_string buf "]"
+  end;
+  let args_arr = List.filter (fun arg -> not (should_skip_argument arg opts.tree_all)) cmd.arguments in
+  if args_arr <> [] then begin
+    Buffer.add_string buf ",\"arguments\":[";
+    let rec render_args first = function
+      | [] -> ()
+      | hd :: tl ->
+          if not first then Buffer.add_string buf ",";
+          argument_to_json buf hd;
+          render_args false tl
+    in
+    render_args true args_arr;
+    Buffer.add_string buf "]"
+  end;
+  let can_recurse = match opts.tree_depth with Some dl -> depth < dl | None -> true in
+  if can_recurse then begin
+    let subs = List.filter (fun sub -> not (should_skip_command sub opts)) cmd.subcommands in
+    if subs <> [] then begin
+      Buffer.add_string buf ",\"subcommands\":[";
+      let rec render_subs first = function
+        | [] -> ()
+        | hd :: tl ->
+            if not first then Buffer.add_string buf ",";
+            cmd_to_json buf hd opts (depth + 1);
+            render_subs false tl
+      in
+      render_subs true subs;
+      Buffer.add_string buf "]"
+    end
+  end;
+  Buffer.add_string buf "}"
+
+let rec find_by_path cmd path =
+  match path with
+  | [] -> cmd
+  | token :: rest ->
+      let found = List.find_opt (fun sub -> sub.name = token) cmd.subcommands in
+      match found with
+      | Some sub -> find_by_path sub rest
+      | None -> cmd
+
+let render opts cmd =
+  let buf = Buffer.create 4096 in
+  let selected = find_by_path cmd [] in
+  let output = match opts.tree_output with Some o -> o | None -> "text" in
+  if output = "json" then begin
+    cmd_to_json buf selected opts 0;
+    Buffer.add_string buf "\n"
+  end else begin
+    render_text buf selected opts;
+    Buffer.add_string buf "\n\nUse `";
+    Buffer.add_string buf cmd.name;
+    Buffer.add_string buf " <COMMAND> --help` for full details on arguments and flags.\n"
+  end;
+  Buffer.contents buf
+
 let rec parse_args args acc =
   match args with
   | [] -> acc
-  | "--help-tree" :: rest ->
-      parse_args rest { acc with help_tree = true }
+  | "--help-tree" :: rest -> parse_args rest { acc with help_tree = true }
   | "-L" :: value :: rest
   | "--tree-depth" :: value :: rest ->
       let depth = try Some (int_of_string value) with Failure _ -> None in
@@ -53,22 +333,8 @@ let rec parse_args args acc =
       parse_args rest { acc with tree_style = Some value }
   | "--tree-color" :: value :: rest ->
       parse_args rest { acc with tree_color = Some value }
-  | arg :: rest when String.length arg > 13 && String.sub arg 0 13 = "--tree-depth=" ->
-      let value = String.sub arg 13 (String.length arg - 13) in
-      let depth = try Some (int_of_string value) with Failure _ -> None in
-      parse_args rest { acc with tree_depth = depth }
-  | arg :: rest when String.length arg > 14 && String.sub arg 0 14 = "--tree-ignore=" ->
-      let value = String.sub arg 14 (String.length arg - 14) in
-      parse_args rest { acc with tree_ignore = value :: acc.tree_ignore }
-  | arg :: rest when String.length arg > 14 && String.sub arg 0 14 = "--tree-output=" ->
-      let value = String.sub arg 14 (String.length arg - 14) in
-      parse_args rest { acc with tree_output = Some value }
-  | arg :: rest when String.length arg > 13 && String.sub arg 0 13 = "--tree-style=" ->
-      let value = String.sub arg 13 (String.length arg - 13) in
-      parse_args rest { acc with tree_style = Some value }
-  | arg :: rest when String.length arg > 13 && String.sub arg 0 13 = "--tree-color=" ->
-      let value = String.sub arg 13 (String.length arg - 13) in
-      parse_args rest { acc with tree_color = Some value }
+  | arg :: rest when String.length arg > 0 && arg.[0] <> '-' ->
+      parse_args rest acc
   | _ :: rest -> parse_args rest acc
 
 let discovery_options () =
@@ -84,286 +350,3 @@ let discovery_options () =
   parse_args (List.tl (Array.to_list Sys.argv)) defaults
 
 let should_render_tree opts = opts.help_tree
-
-let is_tty () =
-  try
-    let stat = Unix.stat "/dev/stdout" in
-    stat.Unix.st_kind = Unix.S_CHR
-  with _ -> false
-
-let use_color opts =
-  match opts.tree_color with
-  | Some "always" -> true
-  | Some "never" -> false
-  | _ -> is_tty ()
-
-let ansi color_code s =
-  "\027[" ^ color_code ^ "m" ^ s ^ "\027[0m"
-
-let colorize opts color s =
-  if use_color opts then ansi color s else s
-
-let escape_json s =
-  let buf = Buffer.create (String.length s * 2) in
-  String.iter (function
-    | '"' -> Buffer.add_string buf "\\\""
-    | '\\' -> Buffer.add_string buf "\\\\"
-    | '\b' -> Buffer.add_string buf "\\b"
-    | '\n' -> Buffer.add_string buf "\\n"
-    | '\r' -> Buffer.add_string buf "\\r"
-    | '\t' -> Buffer.add_string buf "\\t"
-    | c ->
-        if Char.code c < 0x20 then
-          Buffer.add_string buf (Printf.sprintf "\\u%04x" (Char.code c))
-        else
-          Buffer.add_char buf c
-  ) s;
-  Buffer.contents buf
-
-let join sep lst =
-  let rec aux acc = function
-    | [] -> acc
-    | [x] -> acc ^ x
-    | x :: xs -> aux (acc ^ x ^ sep) xs
-  in
-  aux "" lst
-
-let rec filter_ignored ignore_list cmds =
-  List.filter (fun c -> not (List.mem c.name ignore_list)) cmds
-
-let rec find_path path cmds =
-  match path with
-  | [] -> cmds
-  | name :: rest ->
-      let found = List.find_opt (fun c -> c.name = name) cmds in
-      match found with
-      | Some c -> [c]
-      | None -> []
-
-let rec render_text_cmd ?(max_depth = -1) ?(show_hidden = false) ?(path = [])
-    ?(style = "default") ?(color = "auto") opts prefix is_last buf cmd =
-  let depth = String.length prefix / 2 in
-  if max_depth >= 0 && depth > max_depth then ()
-  else if not show_hidden && cmd.hidden then ()
-  else begin
-    let branch = if is_last then "└─ " else "├─ " in
-    let line = prefix ^ branch ^ cmd.name in
-    let colored_line = colorize opts "1;36" line in
-    Buffer.add_string buf colored_line;
-    Buffer.add_string buf "\n";
-
-    let new_prefix = prefix ^ (if is_last then "   " else "│  ") in
-
-    let visible_options : opt list =
-      if show_hidden then cmd.options
-      else List.filter (fun (o : opt) -> not o.hidden) cmd.options
-    in
-    let visible_args : arg list =
-      if show_hidden then cmd.arguments
-      else List.filter (fun (a : arg) -> not a.hidden) cmd.arguments
-    in
-    let visible_subs : cmd list =
-      let subs = filter_ignored opts.tree_ignore cmd.subcommands in
-      if show_hidden then subs
-      else List.filter (fun (c : cmd) -> not c.hidden) subs
-    in
-
-    let children = ref [] in
-
-    if visible_options <> [] then
-      children := !children @ [`Group "Options"];
-    List.iter (fun (o : opt) -> children := !children @ [`Opt o]) visible_options;
-
-    if visible_args <> [] then
-      children := !children @ [`Group "Arguments"];
-    List.iter (fun (a : arg) -> children := !children @ [`Arg a]) visible_args;
-
-    if visible_subs <> [] then
-      children := !children @ [`Group "Subcommands"];
-    List.iter (fun (c : cmd) -> children := !children @ [`Cmd c]) visible_subs;
-
-    let rec render_children prefix items =
-      match items with
-      | [] -> ()
-      | [last] -> render_child prefix true last
-      | hd :: tl -> render_child prefix false hd; render_children prefix tl
-    and render_child prefix is_last = function
-      | `Group name ->
-          let branch = if is_last then "└─ " else "├─ " in
-          let line = prefix ^ branch ^ colorize opts "1;33" name in
-          Buffer.add_string buf line;
-          Buffer.add_string buf "\n"
-      | `Opt o ->
-          let branch = if is_last then "└─ " else "├─ " in
-          let name_str = match o.short with
-            | Some c -> "-" ^ String.make 1 c ^ ", --" ^ o.name
-            | None -> "--" ^ o.name
-          in
-          let arg_str = match o.arg with Some a -> " " ^ a | None -> "" in
-          let line = prefix ^ branch ^ colorize opts "32" (name_str ^ arg_str) in
-          Buffer.add_string buf line;
-          if o.description <> "" then
-            Buffer.add_string buf ("  " ^ colorize opts "90" ("# " ^ o.description));
-          Buffer.add_string buf "\n"
-      | `Arg a ->
-          let branch = if is_last then "└─ " else "├─ " in
-          let name_str = if a.required then "<" ^ a.name ^ ">" else "[" ^ a.name ^ "]" in
-          let line = prefix ^ branch ^ colorize opts "35" name_str in
-          Buffer.add_string buf line;
-          if a.description <> "" then
-            Buffer.add_string buf ("  " ^ colorize opts "90" ("# " ^ a.description));
-          Buffer.add_string buf "\n"
-      | `Cmd c ->
-          render_text_cmd ~max_depth ~show_hidden ~path ~style ~color opts prefix is_last buf c
-    in
-
-    render_children new_prefix !children
-  end
-
-let render_text ?(max_depth = -1) ?(show_hidden = false) ?(path = [])
-    ?(style = "default") ?(color = "auto") cmd =
-  let opts = {
-    help_tree = true;
-    tree_depth = (if max_depth >= 0 then Some max_depth else None);
-    tree_ignore = [];
-    tree_all = show_hidden;
-    tree_output = Some "text";
-    tree_style = Some style;
-    tree_color = Some color;
-  } in
-  let buf = Buffer.create 4096 in
-  let targets = if path = [] then [cmd] else find_path path [cmd] in
-  let rec render_list prefix = function
-    | [] -> ()
-    | [last] -> render_text_cmd ~max_depth ~show_hidden ~path ~style ~color opts prefix true buf last
-    | hd :: tl -> render_text_cmd ~max_depth ~show_hidden ~path ~style ~color opts prefix false buf hd; render_list prefix tl
-  in
-  render_list "" targets;
-  Buffer.contents buf
-
-let rec render_json_cmd ?(max_depth = -1) ?(show_hidden = false) ?(path = [])
-    opts depth buf cmd =
-  if max_depth >= 0 && depth > max_depth then ()
-  else if not show_hidden && cmd.hidden then ()
-  else begin
-    Buffer.add_string buf "{\n";
-    Buffer.add_string buf (Printf.sprintf "%s  \"name\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json cmd.name));
-    Buffer.add_string buf (Printf.sprintf "%s  \"description\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json cmd.description));
-    Buffer.add_string buf (Printf.sprintf "%s  \"hidden\": %b,\n" (String.make (depth * 2) ' ') cmd.hidden);
-
-    let visible_options : opt list =
-      if show_hidden then cmd.options
-      else List.filter (fun (o : opt) -> not o.hidden) cmd.options
-    in
-    let visible_args : arg list =
-      if show_hidden then cmd.arguments
-      else List.filter (fun (a : arg) -> not a.hidden) cmd.arguments
-    in
-    let visible_subs : cmd list =
-      let subs = filter_ignored opts.tree_ignore cmd.subcommands in
-      if show_hidden then subs
-      else List.filter (fun (c : cmd) -> not c.hidden) subs
-    in
-
-    Buffer.add_string buf (Printf.sprintf "%s  \"options\": [\n" (String.make (depth * 2) ' '));
-    let rec render_opts (opts_list : opt list) =
-      match opts_list with
-      | [] -> ()
-      | [last] ->
-          Buffer.add_string buf (Printf.sprintf "%s    {\n" (String.make (depth * 2) ' '));
-          Buffer.add_string buf (Printf.sprintf "%s      \"name\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json last.name));
-          let short_str = match last.short with Some c -> String.make 1 c | None -> "" in
-          Buffer.add_string buf (Printf.sprintf "%s      \"short\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json short_str));
-          Buffer.add_string buf (Printf.sprintf "%s      \"description\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json last.description));
-          Buffer.add_string buf (Printf.sprintf "%s      \"hidden\": %b,\n" (String.make (depth * 2) ' ') last.hidden);
-          let arg_str = match last.arg with Some a -> a | None -> "" in
-          Buffer.add_string buf (Printf.sprintf "%s      \"argument\": \"%s\"\n" (String.make (depth * 2) ' ') (escape_json arg_str));
-          Buffer.add_string buf (Printf.sprintf "%s    }\n" (String.make (depth * 2) ' '))
-      | hd :: tl ->
-          Buffer.add_string buf (Printf.sprintf "%s    {\n" (String.make (depth * 2) ' '));
-          Buffer.add_string buf (Printf.sprintf "%s      \"name\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json hd.name));
-          let short_str = match hd.short with Some c -> String.make 1 c | None -> "" in
-          Buffer.add_string buf (Printf.sprintf "%s      \"short\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json short_str));
-          Buffer.add_string buf (Printf.sprintf "%s      \"description\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json hd.description));
-          Buffer.add_string buf (Printf.sprintf "%s      \"hidden\": %b,\n" (String.make (depth * 2) ' ') hd.hidden);
-          let arg_str = match hd.arg with Some a -> a | None -> "" in
-          Buffer.add_string buf (Printf.sprintf "%s      \"argument\": \"%s\"\n" (String.make (depth * 2) ' ') (escape_json arg_str));
-          Buffer.add_string buf (Printf.sprintf "%s    },\n" (String.make (depth * 2) ' '));
-          render_opts tl
-    in
-    render_opts visible_options;
-    Buffer.add_string buf (Printf.sprintf "%s  ],\n" (String.make (depth * 2) ' '));
-
-    Buffer.add_string buf (Printf.sprintf "%s  \"arguments\": [\n" (String.make (depth * 2) ' '));
-    let rec render_args (args_list : arg list) =
-      match args_list with
-      | [] -> ()
-      | [last] ->
-          Buffer.add_string buf (Printf.sprintf "%s    {\n" (String.make (depth * 2) ' '));
-          Buffer.add_string buf (Printf.sprintf "%s      \"name\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json last.name));
-          Buffer.add_string buf (Printf.sprintf "%s      \"description\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json last.description));
-          Buffer.add_string buf (Printf.sprintf "%s      \"required\": %b,\n" (String.make (depth * 2) ' ') last.required);
-          Buffer.add_string buf (Printf.sprintf "%s      \"hidden\": %b\n" (String.make (depth * 2) ' ') last.hidden);
-          Buffer.add_string buf (Printf.sprintf "%s    }\n" (String.make (depth * 2) ' '))
-      | hd :: tl ->
-          Buffer.add_string buf (Printf.sprintf "%s    {\n" (String.make (depth * 2) ' '));
-          Buffer.add_string buf (Printf.sprintf "%s      \"name\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json hd.name));
-          Buffer.add_string buf (Printf.sprintf "%s      \"description\": \"%s\",\n" (String.make (depth * 2) ' ') (escape_json hd.description));
-          Buffer.add_string buf (Printf.sprintf "%s      \"required\": %b,\n" (String.make (depth * 2) ' ') hd.required);
-          Buffer.add_string buf (Printf.sprintf "%s      \"hidden\": %b\n" (String.make (depth * 2) ' ') hd.hidden);
-          Buffer.add_string buf (Printf.sprintf "%s    },\n" (String.make (depth * 2) ' '));
-          render_args tl
-    in
-    render_args visible_args;
-    Buffer.add_string buf (Printf.sprintf "%s  ],\n" (String.make (depth * 2) ' '));
-
-    Buffer.add_string buf (Printf.sprintf "%s  \"subcommands\": [\n" (String.make (depth * 2) ' '));
-    let rec render_subs (subs_list : cmd list) =
-      match subs_list with
-      | [] -> ()
-      | [last] -> render_json_cmd opts (depth + 1) buf last
-      | hd :: tl ->
-          render_json_cmd opts (depth + 1) buf hd;
-          Buffer.add_string buf ",\n";
-          render_subs tl
-    in
-    render_subs visible_subs;
-    Buffer.add_string buf (Printf.sprintf "%s  ]\n" (String.make (depth * 2) ' '));
-    Buffer.add_string buf (Printf.sprintf "%s}\n" (String.make (depth * 2) ' '))
-  end
-
-let render_json ?(max_depth = -1) ?(show_hidden = false) ?(path = [])
-    cmd =
-  let opts = {
-    help_tree = true;
-    tree_depth = (if max_depth >= 0 then Some max_depth else None);
-    tree_ignore = [];
-    tree_all = show_hidden;
-    tree_output = Some "json";
-    tree_style = None;
-    tree_color = None;
-  } in
-  let buf = Buffer.create 4096 in
-  let targets = if path = [] then [cmd] else find_path path [cmd] in
-  let rec render_list = function
-    | [] -> ()
-    | [last] -> render_json_cmd ~max_depth ~show_hidden opts 0 buf last
-    | hd :: tl ->
-        render_json_cmd ~max_depth ~show_hidden opts 0 buf hd;
-        Buffer.add_string buf ",\n"
-  in
-  Buffer.add_string buf "[\n";
-  render_list targets;
-  Buffer.add_string buf "\n]\n";
-  Buffer.contents buf
-
-let render opts cmd =
-  let output = match opts.tree_output with Some o -> o | None -> "text" in
-  let max_depth = match opts.tree_depth with Some d -> d | None -> -1 in
-  let show_hidden = opts.tree_all in
-  let style = match opts.tree_style with Some s -> s | None -> "default" in
-  let color = match opts.tree_color with Some c -> c | None -> "auto" in
-  if output = "json" then
-    render_json ~max_depth ~show_hidden cmd
-  else
-    render_text ~max_depth ~show_hidden ~style ~color cmd

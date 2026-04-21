@@ -1,46 +1,44 @@
 open Help_tree
 
+let verbose_opt = { name = "verbose"; short = ""; long = "--verbose"; description = "Verbose output"; required = false; takes_value = false; default_val = ""; hidden = false }
+let debug_opt = { name = "debug"; short = ""; long = "--debug"; description = "Enable debug mode"; required = false; takes_value = false; default_val = ""; hidden = true }
+
+let list_cmd = { name = "list"; description = "List items"; options = []; arguments = []; subcommands = []; hidden = false }
+let show_cmd = {
+  name = "show"; description = "Show item details";
+  options = []; arguments = [{ name = "ID"; description = "Item ID"; required = true; hidden = false }];
+  subcommands = []; hidden = false
+}
+
+let admin_users = { name = "users"; description = "List all users"; options = []; arguments = []; subcommands = []; hidden = false }
+let admin_stats = { name = "stats"; description = "Show system stats"; options = []; arguments = []; subcommands = []; hidden = false }
+let admin_secret = { name = "secret"; description = "Secret backdoor"; options = []; arguments = []; subcommands = []; hidden = false }
+let admin = {
+  name = "admin"; description = "Administrative commands";
+  options = []; arguments = [];
+  subcommands = [admin_users; admin_stats; admin_secret]; hidden = true
+}
+
+let root_opts = [
+  { name = "help-tree"; short = ""; long = "--help-tree"; description = "Print a recursive command map derived from framework metadata"; required = false; takes_value = false; default_val = ""; hidden = false };
+  { name = "tree-depth"; short = "-L"; long = "--tree-depth"; description = "Limit --help-tree recursion depth (Unix tree -L style)"; required = false; takes_value = true; default_val = ""; hidden = false };
+  { name = "tree-ignore"; short = "-I"; long = "--tree-ignore"; description = "Exclude subtrees/commands from --help-tree output (repeatable)"; required = false; takes_value = true; default_val = ""; hidden = false };
+  { name = "tree-all"; short = "-a"; long = "--tree-all"; description = "Include hidden subcommands in --help-tree output"; required = false; takes_value = false; default_val = ""; hidden = false };
+  { name = "tree-output"; short = ""; long = "--tree-output"; description = "Output format (text or json)"; required = false; takes_value = true; default_val = ""; hidden = false };
+  { name = "tree-style"; short = ""; long = "--tree-style"; description = "Tree text styling mode (rich or plain)"; required = false; takes_value = true; default_val = ""; hidden = false };
+  { name = "tree-color"; short = ""; long = "--tree-color"; description = "Tree color mode (auto, always, never)"; required = false; takes_value = true; default_val = ""; hidden = false };
+  verbose_opt;
+  debug_opt;
+]
+
+let root = {
+  name = "hidden"; description = "An example with hidden commands and flags";
+  options = root_opts; arguments = [];
+  subcommands = [list_cmd; show_cmd; admin]; hidden = false
+}
+
 let () =
   let opts = discovery_options () in
-
-  let hidden_sub = {
-    name = "debug";
-    description = "Hidden debug command";
-    hidden = true;
-    options = [
-      { name = "dump"; short = Some 'd'; description = "Dump internal state"; hidden = true; arg = None };
-    ];
-    arguments = [];
-    subcommands = [];
-  } in
-
-  let visible_sub = {
-    name = "run";
-    description = "Run the application";
-    hidden = false;
-    options = [
-      { name = "mode"; short = Some 'm'; description = "Run mode"; hidden = false; arg = Some "MODE" };
-    ];
-    arguments = [
-      { name = "target"; description = "Target to run"; required = true; hidden = false };
-    ];
-    subcommands = [];
-  } in
-
-  let root = {
-    name = "hidden";
-    description = "An example with hidden commands and options";
-    hidden = false;
-    options = [
-      { name = "verbose"; short = Some 'v'; description = "Verbose output"; hidden = false; arg = None };
-      { name = "secret"; short = Some 's'; description = "Hidden secret flag"; hidden = true; arg = Some "TOKEN" };
-    ];
-    arguments = [
-      { name = "input"; description = "Input file"; required = false; hidden = true };
-    ];
-    subcommands = [visible_sub; hidden_sub];
-  } in
-
   if should_render_tree opts then
     print_string (render opts root)
   else

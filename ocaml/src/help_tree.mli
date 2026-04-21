@@ -1,9 +1,12 @@
 type opt = {
   name : string;
-  short : char option;
+  short : string;
+  long : string;
   description : string;
+  required : bool;
+  takes_value : bool;
+  default_val : string;
   hidden : bool;
-  arg : string option;
 }
 
 type arg = {
@@ -16,10 +19,10 @@ type arg = {
 type cmd = {
   name : string;
   description : string;
-  hidden : bool;
   options : opt list;
   arguments : arg list;
   subcommands : cmd list;
+  hidden : bool;
 }
 
 type discovery_options = {
@@ -33,21 +36,5 @@ type discovery_options = {
 }
 
 val discovery_options : unit -> discovery_options
-
-val render_text :
-  ?max_depth:int ->
-  ?show_hidden:bool ->
-  ?path:string list ->
-  ?style:string ->
-  ?color:string ->
-  cmd -> string
-
-val render_json :
-  ?max_depth:int ->
-  ?show_hidden:bool ->
-  ?path:string list ->
-  cmd -> string
-
 val should_render_tree : discovery_options -> bool
-
 val render : discovery_options -> cmd -> string
