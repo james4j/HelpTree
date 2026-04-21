@@ -119,7 +119,7 @@ proc loadConfig*(path: string): HelpTreeConfigFile =
     let t = j["theme"]
     proc parseToken(node: JsonNode): TextTokenTheme =
       if node.hasKey("emphasis"):
-        result.emphasis = parseEnum[TextEmphasis](node["emphasis"].getStr)
+        result.emphasis = parseEnum[TextEmphasis](capitalizeAscii(node["emphasis"].getStr))
       if node.hasKey("color_hex"):
         result.color_hex = node["color_hex"].getStr
     result.theme.command = parseToken(t["command"])

@@ -92,6 +92,8 @@ let root = {
 let () =
   let opts = discovery_options () in
   if should_render_tree opts then
+    let config = (try load_config "examples/help-tree.json" with Sys_error _ -> { theme = None }) in
+    let opts = apply_config opts config in
     print_string (render opts root)
   else
     Printf.printf "Run with --help-tree to see the command tree.\n"

@@ -115,6 +115,11 @@ root.subcommands = [server, client]
 
 invocation = HelpTree.parse_invocation(ARGV)
 if invocation
+  config_path = File.join(__dir__, 'help-tree.json')
+  if File.exist?(config_path)
+    config = HelpTree.load_config(config_path)
+    HelpTree.apply_config(invocation.opts, config)
+  end
   HelpTree.run_for_tree(root, invocation.opts, invocation.path)
   exit
 end

@@ -463,6 +463,162 @@ function M.parse_invocation(raw_args)
 end
 
 -- ------------------------------------------------------------------
+-- Config loading
+-- ------------------------------------------------------------------
+
+local function json_skip_ws(s, pos)
+  while pos <= #s and s:sub(pos, pos):match("[%s]") do
+    pos = pos + 1
+  end
+  return pos
+end
+
+local function json_parse_string(s, pos)
+  pos = json_skip_ws(s, pos)
+  if pos > #s or s:sub(pos, pos) ~= '"' then return nil, pos end
+  pos = pos + 1
+  local start = pos
+  while pos <= #s and s:sub(pos, pos) ~= '"' do
+    pos = pos + 1
+  end
+  local val = s:sub(start, pos - 1)
+  if pos <= #s then pos = pos + 1 end
+  return val, pos
+end
+
+local function json_expect_char(s, pos, c)
+  pos = json_skip_ws(s, pos)
+  if pos <= #s and s:sub(pos, pos) == c then
+    return pos + 1
+  end
+  return nil
+end
+
+local function parse_token_theme(s, pos)
+  pos = json_expect_char(s, pos, '{')
+  if not pos then return nil, pos end
+  local token = { emphasis = "normal" }
+  while true do
+    pos = json_skip_ws(s, pos)
+    if pos <= #s and s:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    end
+    local key
+    key, pos = json_parse_string(s, pos)
+    if not key then return nil, pos end
+    pos = json_expect_char(s, pos, ':')
+    if not pos then return nil, pos end
+    local val
+    val, pos = json_parse_string(s, pos)
+    if not val then return nil, pos end
+    if key == "emphasis" then
+      token.emphasis = val
+    elseif key == "color_hex" then
+      token.color_hex = val
+    end
+    pos = json_skip_ws(s, pos)
+    if pos <= #s and s:sub(pos, pos) == ',' then
+      pos = pos + 1
+    elseif pos <= #s and s:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    else
+      return nil, pos
+    end
+  end
+  return token, pos
+end
+
+local function parse_theme(s, pos)
+  pos = json_expect_char(s, pos, '{')
+  if not pos then return nil, pos end
+  local theme = {
+    command = { emphasis = "bold", color_hex = "#7ee7e6" },
+    options = { emphasis = "normal" },
+    description = { emphasis = "italic", color_hex = "#90a2af" },
+  }
+  while true do
+    pos = json_skip_ws(s, pos)
+    if pos <= #s and s:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    end
+    local key
+    key, pos = json_parse_string(s, pos)
+    if not key then return nil, pos end
+    pos = json_expect_char(s, pos, ':')
+    if not pos then return nil, pos end
+    local token
+    token, pos = parse_token_theme(s, pos)
+    if not token then return nil, pos end
+    if key == "command" then theme.command = token
+    elseif key == "options" then theme.options = token
+    elseif key == "description" then theme.description = token
+    end
+    pos = json_skip_ws(s, pos)
+    if pos <= #s and s:sub(pos, pos) == ',' then
+      pos = pos + 1
+    elseif pos <= #s and s:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    else
+      return nil, pos
+    end
+  end
+  return theme, pos
+end
+
+function M.load_config(path)
+  local f, err = io.open(path, "r")
+  if not f then return nil end
+  local data = f:read("*all")
+  f:close()
+  if not data then return nil end
+
+  local pos = 1
+  pos = json_expect_char(data, pos, '{')
+  if not pos then return nil end
+  local config = { theme = nil }
+  while true do
+    pos = json_skip_ws(data, pos)
+    if pos <= #data and data:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    end
+    local key
+    key, pos = json_parse_string(data, pos)
+    if not key then return nil end
+    pos = json_expect_char(data, pos, ':')
+    if not pos then return nil end
+    if key == "theme" then
+      local theme
+      theme, pos = parse_theme(data, pos)
+      if not theme then return nil end
+      config.theme = theme
+    else
+      return nil
+    end
+    pos = json_skip_ws(data, pos)
+    if pos <= #data and data:sub(pos, pos) == ',' then
+      pos = pos + 1
+    elseif pos <= #data and data:sub(pos, pos) == '}' then
+      pos = pos + 1
+      break
+    else
+      return nil
+    end
+  end
+  return config
+end
+
+function M.apply_config(opts, config)
+  if config and config.theme then
+    opts.theme = config.theme
+  end
+end
+
+-- ------------------------------------------------------------------
 -- Convenience
 -- ------------------------------------------------------------------
 

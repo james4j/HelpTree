@@ -134,6 +134,8 @@ int main(int argc, char** argv) {
     std::vector<std::string> path;
     auto opts = help_tree::parse_from_argv(argc, argv, path);
     if (opts) {
+        auto config = help_tree::loadConfig("examples/help-tree.json");
+        if (config) help_tree::applyConfig(*opts, *config);
         help_tree::run(tree, *opts, path);
         return 0;
     }

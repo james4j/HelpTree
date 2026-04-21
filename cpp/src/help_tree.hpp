@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <fstream>
 
 #ifdef __unix__
 #include <unistd.h>
@@ -78,6 +79,10 @@ struct HelpTreeOpts {
     Theme theme;
 };
 
+struct ConfigFile {
+    Theme theme;
+};
+
 // ---------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------
@@ -102,6 +107,98 @@ inline std::vector<TreeOption> discoveryOptions() {
         {"tree-style",  "",   "tree-style",  "Tree text styling mode (rich or plain)",                      false, true,  false},
         {"tree-color",  "",   "tree-color",  "Tree color mode (auto, always, never)",                       false, true,  false},
     };
+}
+
+// ---------------------------------------------------------------------------
+// Config loading
+// ---------------------------------------------------------------------------
+
+inline std::optional<ConfigFile> loadConfig(const std::string& path) {
+    std::ifstream f(path);
+    if (!f) return std::nullopt;
+    std::string data((std::istreambuf_iterator<char>(f)),
+                      std::istreambuf_iterator<char>());
+
+    std::size_t pos = 0;
+    auto skip_ws = [&]() {
+        while (pos < data.size() && (data[pos] == ' ' || data[pos] == '\n' || data[pos] == '\r' || data[pos] == '\t')) pos++;
+    };
+    auto expect = [&](char c) -> bool {
+        skip_ws();
+        if (pos < data.size() && data[pos] == c) { pos++; return true; }
+        return false;
+    };
+    auto parse_string = [&]() -> std::string {
+        skip_ws();
+        if (pos >= data.size() || data[pos] != '"') return "";
+        pos++;
+        std::string s;
+        while (pos < data.size() && data[pos] != '"') {
+            s += data[pos];
+            pos++;
+        }
+        if (pos < data.size() && data[pos] == '"') pos++;
+        return s;
+    };
+
+    Theme theme = default_theme();
+
+    if (!expect('{')) return std::nullopt;
+    while (true) {
+        skip_ws();
+        if (expect('}')) break;
+        std::string key = parse_string();
+        if (!expect(':')) return std::nullopt;
+        if (key == "theme") {
+            if (!expect('{')) return std::nullopt;
+            while (true) {
+                skip_ws();
+                if (expect('}')) break;
+                std::string tkey = parse_string();
+                if (!expect(':')) return std::nullopt;
+                if (!expect('{')) return std::nullopt;
+                TextTokenTheme token;
+                while (true) {
+                    skip_ws();
+                    if (expect('}')) break;
+                    std::string k = parse_string();
+                    if (!expect(':')) return std::nullopt;
+                    std::string v = parse_string();
+                    if (k == "emphasis") {
+                        if (v == "bold") token.emphasis = TextEmphasis::Bold;
+                        else if (v == "italic") token.emphasis = TextEmphasis::Italic;
+                        else if (v == "bold_italic") token.emphasis = TextEmphasis::BoldItalic;
+                        else token.emphasis = TextEmphasis::Normal;
+                    } else if (k == "color_hex") {
+                        token.color_hex = v;
+                    }
+                    skip_ws();
+                    if (expect(',')) continue;
+                    else if (pos < data.size() && data[pos] == '}') { expect('}'); break; }
+                    else return std::nullopt;
+                }
+                if (tkey == "command") theme.command = token;
+                else if (tkey == "options") theme.options = token;
+                else if (tkey == "description") theme.description = token;
+                skip_ws();
+                if (expect(',')) continue;
+                else if (pos < data.size() && data[pos] == '}') { expect('}'); break; }
+                else return std::nullopt;
+            }
+        } else {
+            return std::nullopt;
+        }
+        skip_ws();
+        if (expect(',')) continue;
+        else if (pos < data.size() && data[pos] == '}') { expect('}'); break; }
+        else return std::nullopt;
+    }
+
+    return ConfigFile{theme};
+}
+
+inline void applyConfig(HelpTreeOpts& opts, const ConfigFile& cfg) {
+    opts.theme = cfg.theme;
 }
 
 // ---------------------------------------------------------------------------

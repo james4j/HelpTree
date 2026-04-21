@@ -59,7 +59,10 @@ static const ht_command_t root = {
 int main(int argc, char **argv) {
     ht_invocation_t *inv = ht_parse_invocation(argc - 1, argv + 1);
     if (inv) {
+        ht_config_file_t *cfg = ht_load_config("examples/help-tree.json");
+        ht_apply_config(&inv->opts, cfg);
         ht_run_for_tree(&root, &inv->opts, inv->path, inv->path_count);
+        ht_free_config(cfg);
         ht_free_invocation(inv);
         return 0;
     }

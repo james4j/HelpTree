@@ -161,8 +161,11 @@ module HelpTree
     ConfigFile.from_json(File.read(path))
   end
 
-  def self.apply_config(opts : Opts, config : ConfigFile)
-    opts.theme = config.theme if config.theme
+  def self.apply_config(opts : Opts, config : ConfigFile) : Opts
+    if t = config.theme
+      opts.theme = t
+    end
+    opts
   end
 
   def self.parse_invocation(argv : Array(String)) : Invocation?

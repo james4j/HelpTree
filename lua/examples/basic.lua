@@ -44,7 +44,20 @@ local root = {
   hidden = false,
 }
 
-if help_tree.run(root, arg) then
+local inv = help_tree.parse_invocation(arg)
+if inv then
+  local config = help_tree.load_config("examples/help-tree.json")
+  if config then
+    help_tree.apply_config(inv.opts, config)
+  end
+  local selected = help_tree.find_by_path(root, inv.path)
+  if inv.opts.output == "json" then
+    print(help_tree.render_json(selected, inv.opts))
+  else
+    print(help_tree.render_text(selected, inv.opts))
+    print()
+    print(string.format("Use `%s <COMMAND> --help` for full details on arguments and flags.", root.name))
+  end
   os.exit(0)
 end
 

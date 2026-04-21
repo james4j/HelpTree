@@ -484,3 +484,183 @@ pub fn parseInvocation(allocator: std.mem.Allocator, argv: []const []const u8) !
         .path = try path.toOwnedSlice(allocator),
     };
 }
+
+// ---------------------------------------------------------------------------
+// Config loading
+// ---------------------------------------------------------------------------
+
+fn skipJsonWs(p: *[]const u8) void {
+    while (p.*.len > 0 and (p.*[0] == ' ' or p.*[0] == '\n' or p.*[0] == '\r' or p.*[0] == '\t')) {
+        p.* = p.*[1..];
+    }
+}
+
+fn parseJsonString(p: *[]const u8) ?[]const u8 {
+    skipJsonWs(p);
+    if (p.*.len == 0 or p.*[0] != '"') return null;
+    p.* = p.*[1..];
+    const start = p.*.ptr;
+    var len: usize = 0;
+    while (p.*.len > 0 and p.*[0] != '"') {
+        len += 1;
+        p.* = p.*[1..];
+    }
+    if (p.*.len > 0 and p.*[0] == '"') p.* = p.*[1..];
+    return start[0..len];
+}
+
+fn expectJsonChar(p: *[]const u8, c: u8) bool {
+    skipJsonWs(p);
+    if (p.*.len > 0 and p.*[0] == c) {
+        p.* = p.*[1..];
+        return true;
+    }
+    return false;
+}
+
+fn parseTextEmphasisFromSlice(s: []const u8) TextEmphasis {
+    if (std.mem.eql(u8, s, "bold")) return .bold;
+    if (std.mem.eql(u8, s, "italic")) return .italic;
+    if (std.mem.eql(u8, s, "bold_italic")) return .bold_italic;
+    return .normal;
+}
+
+fn parseTokenTheme(p: *[]const u8) ?TextTokenTheme {
+    if (!expectJsonChar(p, '{')) return null;
+    var token = TextTokenTheme{};
+    while (true) {
+        skipJsonWs(p);
+        if (p.*.len > 0 and p.*[0] == '}') {
+            p.* = p.*[1..];
+            break;
+        }
+        const key = parseJsonString(p) orelse return null;
+        if (!expectJsonChar(p, ':')) return null;
+        const val = parseJsonString(p) orelse return null;
+        if (std.mem.eql(u8, key, "emphasis")) {
+            token.emphasis = parseTextEmphasisFromSlice(val);
+        } else if (std.mem.eql(u8, key, "color_hex")) {
+            token.color_hex = val;
+        }
+        skipJsonWs(p);
+        if (p.*.len > 0 and p.*[0] == ',') {
+            p.* = p.*[1..];
+            continue;
+        } else if (p.*.len > 0 and p.*[0] == '}') {
+            p.* = p.*[1..];
+            break;
+        } else {
+            return null;
+        }
+    }
+    return token;
+}
+
+fn parseHelpTreeTheme(p: *[]const u8) ?HelpTreeTheme {
+    if (!expectJsonChar(p, '{')) return null;
+    var theme = HelpTreeTheme{};
+    while (true) {
+        skipJsonWs(p);
+        if (p.*.len > 0 and p.*[0] == '}') {
+            p.* = p.*[1..];
+            break;
+        }
+        const key = parseJsonString(p) orelse return null;
+        if (!expectJsonChar(p, ':')) return null;
+        const token = parseTokenTheme(p) orelse return null;
+        if (std.mem.eql(u8, key, "command")) {
+            theme.command = token;
+        } else if (std.mem.eql(u8, key, "options")) {
+            theme.options = token;
+        } else if (std.mem.eql(u8, key, "description")) {
+            theme.description = token;
+        }
+        skipJsonWs(p);
+        if (p.*.len > 0 and p.*[0] == ',') {
+            p.* = p.*[1..];
+            continue;
+        } else if (p.*.len > 0 and p.*[0] == '}') {
+            p.* = p.*[1..];
+            break;
+        } else {
+            return null;
+        }
+    }
+    return theme;
+}
+
+pub const HelpTreeConfigFile = struct {
+    theme: ?HelpTreeTheme = null,
+    _allocator: ?std.mem.Allocator = null,
+    _data: ?[]const u8 = null,
+
+    pub fn deinit(self: HelpTreeConfigFile) void {
+        if (self._allocator) |a| {
+            if (self._data) |d| a.free(d);
+        }
+    }
+};
+
+pub fn loadConfig(allocator: std.mem.Allocator, path: []const u8) !?HelpTreeConfigFile {
+    const data = std.fs.cwd().readFileAlloc(allocator, path, 1024 * 1024) catch |err| switch (err) {
+        error.FileNotFound => return null,
+        else => |e| return e,
+    };
+
+    var p: []const u8 = data;
+    if (!expectJsonChar(&p, '{')) {
+        allocator.free(data);
+        return error.InvalidJson;
+    }
+
+    var config = HelpTreeConfigFile{
+        ._allocator = allocator,
+        ._data = data,
+    };
+
+    while (true) {
+        skipJsonWs(&p);
+        if (p.len > 0 and p[0] == '}') {
+            p = p[1..];
+            break;
+        }
+        const key = parseJsonString(&p) orelse {
+            allocator.free(data);
+            return error.InvalidJson;
+        };
+        if (!expectJsonChar(&p, ':')) {
+            allocator.free(data);
+            return error.InvalidJson;
+        }
+
+        if (std.mem.eql(u8, key, "theme")) {
+            config.theme = parseHelpTreeTheme(&p) orelse {
+                allocator.free(data);
+                return error.InvalidJson;
+            };
+        } else {
+            allocator.free(data);
+            return error.InvalidJson;
+        }
+
+        skipJsonWs(&p);
+        if (p.len > 0 and p[0] == ',') {
+            p = p[1..];
+            continue;
+        } else if (p.len > 0 and p[0] == '}') {
+            p = p[1..];
+            break;
+        } else {
+            allocator.free(data);
+            return error.InvalidJson;
+        }
+    }
+
+    return config;
+}
+
+pub fn applyConfig(opts: *HelpTreeOpts, config: HelpTreeConfigFile) void {
+    if (config.theme) |t| {
+        opts.theme = t;
+    }
+}

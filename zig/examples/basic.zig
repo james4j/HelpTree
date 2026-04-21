@@ -11,11 +11,18 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    const invocation = try help_tree.parseInvocation(allocator, args[1..]) orelse {
+    var invocation = try help_tree.parseInvocation(allocator, args[1..]) orelse {
         std.debug.print("Run with --help-tree to see the command tree.\n", .{});
         return;
     };
     defer invocation.deinit(allocator);
+
+    var config: ?help_tree.HelpTreeConfigFile = null;
+    defer if (config) |c| c.deinit();
+    if (try help_tree.loadConfig(allocator, "examples/help-tree.json")) |cfg| {
+        config = cfg;
+        help_tree.applyConfig(&invocation.opts, config.?);
+    }
 
     const project_list = help_tree.TreeCommand{ .name = "list", .description = "List all projects", .options = &.{verbose_opt} };
     const project_create = help_tree.TreeCommand{ .name = "create", .description = "Create a new project", .arguments = &.{.{ .name = "NAME", .description = "Project name", .required = true }}, .options = &.{verbose_opt} };

@@ -4,6 +4,12 @@ require "../src/help_tree"
 # A basic example CLI with nested subcommands
 invocation = HelpTree.parse_invocation(ARGV)
 if invocation
+  opts = invocation.opts
+  config_path = File.join(__DIR__, "help-tree.json")
+  if File.exists?(config_path)
+    config = HelpTree.load_config(config_path)
+    opts = HelpTree.apply_config(opts, config)
+  end
   root = HelpTree::TreeCommand.new(
     name: "basic",
     description: "A basic example CLI with nested subcommands",
@@ -59,7 +65,7 @@ if invocation
   )
 
   root.subcommands = [project, task]
-  HelpTree.run_for_parser(root, invocation.opts, invocation.path)
+  HelpTree.run_for_parser(root, opts, invocation.path)
   exit
 end
 

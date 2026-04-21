@@ -85,6 +85,10 @@ typedef struct {
     size_t path_count;
 } ht_invocation_t;
 
+typedef struct {
+    ht_theme_t theme;
+} ht_config_file_t;
+
 /* --- defaults --- */
 ht_theme_t ht_default_theme(void);
 ht_opts_t ht_default_opts(void);
@@ -92,6 +96,11 @@ ht_opts_t ht_default_opts(void);
 /* --- parsing --- */
 ht_invocation_t *ht_parse_invocation(int argc, char **argv);
 void ht_free_invocation(ht_invocation_t *inv);
+
+/* --- config --- */
+ht_config_file_t *ht_load_config(const char *path);
+void ht_free_config(ht_config_file_t *cfg);
+void ht_apply_config(ht_opts_t *opts, const ht_config_file_t *cfg);
 
 /* --- rendering --- */
 char *ht_render_text(const ht_command_t *cmd, const ht_opts_t *opts);

@@ -59,8 +59,12 @@ proc basicCmd(): TreeCommand =
 
 when isMainModule:
   let root = basicCmd()
-  let invocation = parseHelpTreeInvocation(commandLineParams())
+  var invocation = parseHelpTreeInvocation(commandLineParams())
   if invocation.helpTree:
+    let configPath = joinPath(currentSourcePath().parentDir, "help-tree.json")
+    if fileExists(configPath):
+      let config = loadConfig(configPath)
+      applyConfig(invocation.opts, config)
     runForParser(root, invocation.opts, invocation.path)
     quit(0)
 

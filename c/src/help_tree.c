@@ -544,6 +544,183 @@ void ht_free_invocation(ht_invocation_t *inv) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Minimal JSON parser for theme config                                */
+/* ------------------------------------------------------------------ */
+
+static void json_skip_ws(const char **p) {
+    while (**p == ' ' || **p == '\n' || **p == '\r' || **p == '\t') (*p)++;
+}
+
+static bool json_parse_string(const char **p, char *out, size_t outlen) {
+    json_skip_ws(p);
+    if (**p != '"') return false;
+    (*p)++;
+    size_t i = 0;
+    while (**p && **p != '"') {
+        if (i + 1 < outlen) out[i] = **p;
+        i++;
+        (*p)++;
+    }
+    if (**p == '"') (*p)++;
+    if (i < outlen) out[i] = '\0';
+    else out[outlen - 1] = '\0';
+    return true;
+}
+
+static bool json_expect(const char **p, char c) {
+    json_skip_ws(p);
+    if (**p == c) { (*p)++; return true; }
+    return false;
+}
+
+static ht_emphasis_t parse_emphasis(const char *s) {
+    if (strcmp(s, "bold") == 0) return HT_BOLD;
+    if (strcmp(s, "italic") == 0) return HT_ITALIC;
+    if (strcmp(s, "bold_italic") == 0) return HT_BOLD_ITALIC;
+    return HT_NORMAL;
+}
+
+static char *json_strdup(const char *s) {
+    if (!s) return NULL;
+    char *copy = malloc(strlen(s) + 1);
+    if (copy) strcpy(copy, s);
+    return copy;
+}
+
+static bool json_parse_token_theme(const char **p, ht_token_theme_t *token) {
+    if (!json_expect(p, '{')) return false;
+    token->emphasis = HT_NORMAL;
+    token->color_hex = NULL;
+    while (1) {
+        json_skip_ws(p);
+        if (**p == '}') { (*p)++; break; }
+        char key[32], val[32];
+        if (!json_parse_string(p, key, sizeof(key))) return false;
+        if (!json_expect(p, ':')) return false;
+        if (!json_parse_string(p, val, sizeof(val))) return false;
+        if (strcmp(key, "emphasis") == 0) token->emphasis = parse_emphasis(val);
+        else if (strcmp(key, "color_hex") == 0) token->color_hex = json_strdup(val);
+        json_skip_ws(p);
+        if (**p == ',') { (*p)++; continue; }
+        else if (**p == '}') { (*p)++; break; }
+        else return false;
+    }
+    return true;
+}
+
+static bool json_parse_theme(const char **p, ht_theme_t *theme) {
+    if (!json_expect(p, '{')) return false;
+    *theme = ht_default_theme();
+    /* strdup the default strings so they can all be freed uniformly */
+    theme->command.color_hex = json_strdup(theme->command.color_hex);
+    theme->options.color_hex = json_strdup(theme->options.color_hex);
+    theme->description.color_hex = json_strdup(theme->description.color_hex);
+    while (1) {
+        json_skip_ws(p);
+        if (**p == '}') { (*p)++; break; }
+        char key[32];
+        if (!json_parse_string(p, key, sizeof(key))) return false;
+        if (!json_expect(p, ':')) return false;
+        ht_token_theme_t token;
+        if (!json_parse_token_theme(p, &token)) return false;
+        if (strcmp(key, "command") == 0) {
+            free((void*)theme->command.color_hex);
+            theme->command = token;
+        }
+        else if (strcmp(key, "options") == 0) {
+            free((void*)theme->options.color_hex);
+            theme->options = token;
+        }
+        else if (strcmp(key, "description") == 0) {
+            free((void*)theme->description.color_hex);
+            theme->description = token;
+        }
+        json_skip_ws(p);
+        if (**p == ',') { (*p)++; continue; }
+        else if (**p == '}') { (*p)++; break; }
+        else return false;
+    }
+    return true;
+}
+
+ht_config_file_t *ht_load_config(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return NULL;
+    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return NULL; }
+    long len = ftell(f);
+    if (len < 0) { fclose(f); return NULL; }
+    if (fseek(f, 0, SEEK_SET) != 0) { fclose(f); return NULL; }
+    char *data = malloc((size_t)len + 1);
+    if (!data) { fclose(f); return NULL; }
+    size_t read = fread(data, 1, (size_t)len, f);
+    fclose(f);
+    data[read] = '\0';
+
+    ht_theme_t theme = ht_default_theme();
+    theme.command.color_hex = json_strdup(theme.command.color_hex);
+    theme.options.color_hex = json_strdup(theme.options.color_hex);
+    theme.description.color_hex = json_strdup(theme.description.color_hex);
+
+    const char *p = data;
+    bool ok = true;
+    if (!json_expect(&p, '{')) ok = false;
+    while (ok) {
+        json_skip_ws(&p);
+        if (*p == '}') { p++; break; }
+        char key[32];
+        if (!json_parse_string(&p, key, sizeof(key))) { ok = false; break; }
+        if (!json_expect(&p, ':')) { ok = false; break; }
+        if (strcmp(key, "theme") == 0) {
+            ht_theme_t parsed_theme;
+            if (json_parse_theme(&p, &parsed_theme)) {
+                free((void*)theme.command.color_hex);
+                free((void*)theme.options.color_hex);
+                free((void*)theme.description.color_hex);
+                theme = parsed_theme;
+            } else {
+                ok = false;
+                break;
+            }
+        } else {
+            ok = false;
+            break;
+        }
+        json_skip_ws(&p);
+        if (*p == ',') { p++; continue; }
+        else if (*p == '}') { p++; break; }
+        else { ok = false; break; }
+    }
+    free(data);
+    if (!ok) {
+        free((void*)theme.command.color_hex);
+        free((void*)theme.options.color_hex);
+        free((void*)theme.description.color_hex);
+        return NULL;
+    }
+    ht_config_file_t *cfg = malloc(sizeof(ht_config_file_t));
+    if (!cfg) {
+        free((void*)theme.command.color_hex);
+        free((void*)theme.options.color_hex);
+        free((void*)theme.description.color_hex);
+        return NULL;
+    }
+    cfg->theme = theme;
+    return cfg;
+}
+
+void ht_free_config(ht_config_file_t *cfg) {
+    if (!cfg) return;
+    free((void*)cfg->theme.command.color_hex);
+    free((void*)cfg->theme.options.color_hex);
+    free((void*)cfg->theme.description.color_hex);
+    free(cfg);
+}
+
+void ht_apply_config(ht_opts_t *opts, const ht_config_file_t *cfg) {
+    if (cfg) opts->theme = cfg->theme;
+}
+
+/* ------------------------------------------------------------------ */
 /* Path targeting                                                      */
 /* ------------------------------------------------------------------ */
 

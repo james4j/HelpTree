@@ -25,17 +25,6 @@ type cmd = {
   hidden : bool;
 }
 
-type discovery_options = {
-  help_tree : bool;
-  tree_depth : int option;
-  tree_ignore : string list;
-  tree_all : bool;
-  tree_output : string option;
-  tree_style : string option;
-  tree_color : string option;
-  path : string list;
-}
-
 type theme_token = {
   emphasis : string;
   color_hex : string option;
@@ -45,6 +34,22 @@ type theme = {
   command : theme_token;
   options : theme_token;
   description : theme_token;
+}
+
+type discovery_options = {
+  help_tree : bool;
+  tree_depth : int option;
+  tree_ignore : string list;
+  tree_all : bool;
+  tree_output : string option;
+  tree_style : string option;
+  tree_color : string option;
+  path : string list;
+  theme : theme;
+}
+
+type config_file = {
+  theme : theme option;
 }
 
 let tree_align_width = 28
@@ -131,7 +136,7 @@ let command_signature (cmd : cmd) tree_all =
   if has_flags then suffix := !suffix ^ " [flags]";
   (cmd.name, !suffix)
 
-let rec render_text_lines buf (cmd : cmd) prefix depth opts =
+let rec render_text_lines buf (cmd : cmd) prefix depth (opts : discovery_options) =
   let items = List.filter (fun (sub : cmd) -> not (should_skip_command sub opts)) cmd.subcommands in
   if items = [] then ()
   else
@@ -144,15 +149,14 @@ let rec render_text_lines buf (cmd : cmd) prefix depth opts =
           let name, suffix = command_signature sub opts.tree_all in
           let signature = name ^ suffix in
           let about = sub.description in
-          let t = default_theme () in
-          let name_styled = style_text name t.command opts in
-          let suffix_styled = style_text suffix t.options opts in
+          let name_styled = style_text name opts.theme.command opts in
+          let suffix_styled = style_text suffix opts.theme.options opts in
           Buffer.add_string buf (prefix ^ branch ^ name_styled ^ suffix_styled);
           if about <> "" then begin
             let sig_len = String.length signature in
             let dots_len = max min_dots (tree_align_width - sig_len) in
             Buffer.add_string buf (" " ^ String.make dots_len '.' ^ " ");
-            Buffer.add_string buf (style_text about t.description opts)
+            Buffer.add_string buf (style_text about opts.theme.description opts)
           end;
           Buffer.add_string buf "\n";
           if not at_limit then begin
@@ -163,9 +167,8 @@ let rec render_text_lines buf (cmd : cmd) prefix depth opts =
     in
     render_item 0 items
 
-let render_text buf (cmd : cmd) opts =
-  let t = default_theme () in
-  Buffer.add_string buf (style_text cmd.name t.command opts);
+let render_text buf (cmd : cmd) (opts : discovery_options) =
+  Buffer.add_string buf (style_text cmd.name opts.theme.command opts);
   Buffer.add_string buf "\n";
   List.iter (fun (opt : opt) ->
     if not (should_skip_option opt opts.tree_all) then begin
@@ -175,7 +178,7 @@ let render_text buf (cmd : cmd) opts =
         else if opt.short <> "" then opt.short
         else opt.name
       in
-      Buffer.add_string buf ("  " ^ style_text meta t.options opts ^ " … " ^ style_text opt.description t.description opts);
+      Buffer.add_string buf ("  " ^ style_text meta opts.theme.options opts ^ " … " ^ style_text opt.description opts.theme.description opts);
       Buffer.add_string buf "\n"
     end
   ) cmd.options;
@@ -240,7 +243,7 @@ let argument_to_json buf (arg : arg) =
   Buffer.add_string buf (if arg.required then "true" else "false");
   Buffer.add_string buf "}"
 
-let rec cmd_to_json buf (cmd : cmd) opts depth =
+let rec cmd_to_json buf (cmd : cmd) (opts : discovery_options) depth =
   Buffer.add_string buf "{\"type\":\"command\",\"name\":\"";
   Buffer.add_string buf (escape_json cmd.name);
   Buffer.add_string buf "\"";
@@ -354,8 +357,134 @@ let discovery_options () =
     tree_style = None;
     tree_color = None;
     path = [];
+    theme = default_theme ();
   } in
   let opts = parse_args (List.tl (Array.to_list Sys.argv)) defaults in
   { opts with path = List.rev opts.path }
 
 let should_render_tree opts = opts.help_tree
+
+(* ---------------------------------------------------------------------------
+   Minimal JSON parser for theme config
+   --------------------------------------------------------------------------- *)
+
+let rec json_skip_ws s i =
+  if i < String.length s && (s.[i] = ' ' || s.[i] = '\n' || s.[i] = '\r' || s.[i] = '\t')
+  then json_skip_ws s (i + 1)
+  else i
+
+let json_parse_string s i =
+  let i = json_skip_ws s i in
+  if i >= String.length s || s.[i] <> '"' then None
+  else
+    let j = ref (i + 1) in
+    while !j < String.length s && s.[!j] <> '"' do
+      incr j
+    done;
+    let str = String.sub s (i + 1) (!j - i - 1) in
+    if !j < String.length s then Some (str, !j + 1)
+    else None
+
+let json_expect_char s i c =
+  let i = json_skip_ws s i in
+  if i < String.length s && s.[i] = c then Some (i + 1)
+  else None
+
+let parse_emphasis s =
+  match s with
+  | "bold" -> "bold"
+  | "italic" -> "italic"
+  | "bold_italic" -> "bold_italic"
+  | _ -> "normal"
+
+let rec json_parse_token_theme s i =
+  match json_expect_char s i '{' with
+  | None -> None
+  | Some i ->
+      let rec loop i token =
+        let i = json_skip_ws s i in
+        if i < String.length s && s.[i] = '}' then Some (token, i + 1)
+        else
+          match json_parse_string s i with
+          | None -> None
+          | Some (key, i) ->
+              match json_expect_char s i ':' with
+              | None -> None
+              | Some i ->
+                  match json_parse_string s i with
+                  | None -> None
+                  | Some (value, i) ->
+                      let token =
+                        if key = "emphasis" then { token with emphasis = parse_emphasis value }
+                        else if key = "color_hex" then { token with color_hex = Some value }
+                        else token
+                      in
+                      let i = json_skip_ws s i in
+                      if i < String.length s && s.[i] = ',' then loop (i + 1) token
+                      else if i < String.length s && s.[i] = '}' then Some (token, i + 1)
+                      else None
+      in
+      loop i { emphasis = "normal"; color_hex = None }
+
+let rec json_parse_theme s i =
+  match json_expect_char s i '{' with
+  | None -> None
+  | Some i ->
+      let rec loop i theme =
+        let i = json_skip_ws s i in
+        if i < String.length s && s.[i] = '}' then Some (theme, i + 1)
+        else
+          match json_parse_string s i with
+          | None -> None
+          | Some (key, i) ->
+              match json_expect_char s i ':' with
+              | None -> None
+              | Some i ->
+                  match json_parse_token_theme s i with
+                  | None -> None
+                  | Some (token, i) ->
+                      let theme =
+                        if key = "command" then { theme with command = token }
+                        else if key = "options" then { theme with options = token }
+                        else if key = "description" then { theme with description = token }
+                        else theme
+                      in
+                      let i = json_skip_ws s i in
+                      if i < String.length s && s.[i] = ',' then loop (i + 1) theme
+                      else if i < String.length s && s.[i] = '}' then Some (theme, i + 1)
+                      else None
+      in
+      loop i (default_theme ())
+
+let load_config path =
+  let ic = open_in path in
+  let len = in_channel_length ic in
+  let data = really_input_string ic len in
+  close_in ic;
+  let i = json_skip_ws data 0 in
+  match json_expect_char data i '{' with
+  | None -> { theme = None }
+  | Some i ->
+      let rec loop i config =
+        let i = json_skip_ws data i in
+        if i < String.length data && data.[i] = '}' then config
+        else
+          match json_parse_string data i with
+          | None -> config
+          | Some (key, i) ->
+              match json_expect_char data i ':' with
+              | None -> config
+              | Some i ->
+                  if key = "theme" then
+                    match json_parse_theme data i with
+                    | None -> config
+                    | Some (theme, i) -> loop i { theme = Some theme }
+                  else
+                    config
+      in
+      loop i { theme = None }
+
+let apply_config (opts : discovery_options) config =
+  match config.theme with
+  | Some t -> { opts with theme = t }
+  | None -> opts

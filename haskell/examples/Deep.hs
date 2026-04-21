@@ -2,6 +2,7 @@
 module Main where
 
 import HelpTree
+import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 
 deepTree :: TreeCommand
@@ -82,5 +83,15 @@ main :: IO ()
 main = do
     args <- getArgs
     case parseHelpTreeInvocation args of
-        Just invocation -> runHelpTree deepTree invocation
+        Just invocation -> do
+            let configPath = "examples/help-tree.json"
+            configExists <- doesFileExist configPath
+            opts' <- if configExists
+                then do
+                    eConfig <- loadConfig configPath
+                    case eConfig of
+                        Left _ -> return (invocationOpts invocation)
+                        Right config -> return (applyConfig (invocationOpts invocation) config)
+                else return (invocationOpts invocation)
+            runHelpTree deepTree (invocation { invocationOpts = opts' })
         Nothing -> putStrLn "Run with --help-tree to see the command tree."

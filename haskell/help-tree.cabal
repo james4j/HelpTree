@@ -26,6 +26,7 @@ executable basic
   hs-source-dirs:      examples
   build-depends:
     base,
+    directory,
     help-tree,
     optparse-applicative,
   default-language:    Haskell2010
@@ -35,6 +36,7 @@ executable deep
   hs-source-dirs:      examples
   build-depends:
     base,
+    directory,
     help-tree,
     optparse-applicative,
   default-language:    Haskell2010
@@ -44,6 +46,7 @@ executable hidden
   hs-source-dirs:      examples
   build-depends:
     base,
+    directory,
     help-tree,
     optparse-applicative,
   default-language:    Haskell2010
