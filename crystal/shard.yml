@@ -1,0 +1,10 @@
+name: help_tree
+version: 0.1.0
+
+description: |
+  Introspective --help-tree for OptionParser-based CLIs
+
+authors:
+  - HelpTree Contributors
+
+license: MIT

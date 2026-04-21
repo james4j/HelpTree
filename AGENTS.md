@@ -4,28 +4,21 @@
 
 ```
 HelpTree/
-├── rust/
-│   ├── crates/help-tree/     — Library crate
-│   └── Cargo.toml            — Workspace manifest
-├── python/
-│   ├── help_tree/            — Package source
-│   ├── examples/             — basic, deep, hidden
-│   └── pyproject.toml
-├── typescript/
-│   ├── src/                  — Package source
-│   ├── examples/             — basic, deep, hidden
-│   └── package.json
-├── go/
-│   ├── help-tree/            — Library module
-│   ├── examples/             — basic, deep, hidden (each with go.mod)
-│   └── go.mod
-├── docs/
-│   ├── specification.md      — Cross-language behavior spec
-│   └── config-schema.md      — Theme config schema reference
-├── tests/
-│   └── fixtures/             — Canonical expected outputs
-├── README.md                 — Public landing page
-└── AGENTS.md                 — This file
+├── rust/           — Rust crate (clap integration)
+├── python/         — Python package (argparse integration)
+├── typescript/     — TypeScript package (commander integration)
+├── go/             — Go module (cobra integration)
+├── csharp/         — C# library (System.CommandLine integration)
+├── swift/          — Swift package (ArgumentParser integration)
+├── nim/            — Nim package (cligen integration)
+├── crystal/        — Crystal shard (OptionParser integration)
+├── ruby/           — Ruby gem (Thor integration)
+├── zig/            — Zig module
+├── haskell/        — Haskell library (optparse-applicative integration)
+├── docs/           — Shared specification and config schema
+├── tests/          — Shared fixtures & compliance expectations
+├── README.md       — Public landing page
+└── AGENTS.md       — This file
 ```
 
 ## Conventions
@@ -69,6 +62,62 @@ cd go && go test ./...
 cd examples/basic && go run . --help-tree
 cd examples/deep && go run . --help-tree -L 1
 cd examples/hidden && go run . --help-tree -a
+```
+
+### C#
+```bash
+cd csharp && dotnet build
+cd examples/basic && dotnet run -- --help-tree
+cd examples/deep && dotnet run -- --help-tree -L 1
+cd examples/hidden && dotnet run -- --help-tree -a
+```
+
+### Swift
+```bash
+cd swift && swift build
+swift run Basic --help-tree
+swift run Deep --help-tree -L 1
+swift run Hidden --help-tree -a
+```
+
+### Nim
+```bash
+cd nim && nimble build
+nimble run basic -- --help-tree
+nimble run deep -- --help-tree -L 1
+nimble run hidden -- --help-tree -a
+```
+
+### Crystal
+```bash
+cd crystal && shards build
+crystal run examples/basic.cr -- --help-tree
+crystal run examples/deep.cr -- --help-tree -L 1
+crystal run examples/hidden.cr -- --help-tree -a
+```
+
+### Ruby
+```bash
+cd ruby && bundle install
+bundle exec ruby examples/basic.rb --help-tree
+bundle exec ruby examples/deep.rb --help-tree -L 1
+bundle exec ruby examples/hidden.rb --help-tree -a
+```
+
+### Zig
+```bash
+cd zig && zig build
+zig build run-basic -- --help-tree
+zig build run-deep -- --help-tree -L 1
+zig build run-hidden -- --help-tree -a
+```
+
+### Haskell
+```bash
+cd haskell && cabal build
+cabal run basic -- --help-tree
+cabal run deep -- --help-tree -L 1
+cabal run hidden -- --help-tree -a
 ```
 
 ## Pre-commit Hooks

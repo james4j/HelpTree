@@ -16,6 +16,38 @@ typescript/dist/
 # Go
 go/go.sum
 
+# C#
+csharp/bin/
+csharp/obj/
+csharp/examples/*/bin/
+csharp/examples/*/obj/
+
+# Swift
+swift/.build/
+swift/.swiftpm/
+
+# Nim
+nim/nimcache/
+
+# Crystal
+crystal/lib/
+crystal/bin/
+
+# Ruby
+ruby/.bundle/
+ruby/Gemfile.lock
+ruby/*.gem
+
+# Zig
+zig/zig-out/
+zig/zig-cache/
+
+# Haskell
+haskell/dist/
+haskell/dist-newstyle/
+haskell/.cabal-sandbox/
+haskell/cabal.sandbox.config
+
 # General
 .DS_Store
 *.swp
@@ -23,3 +55,4 @@ go/go.sum
 *~
 .vscode/
 .idea/
+.venv/

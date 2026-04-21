@@ -23,6 +23,13 @@ myapp
 | Python | `argparse` | JSON | [`python/`](python/) |
 | TypeScript | `commander` | JSON | [`typescript/`](typescript/) |
 | Go | `cobra` | JSON | [`go/`](go/) |
+| C# | `System.CommandLine` | JSON | [`csharp/`](csharp/) |
+| Swift | `ArgumentParser` | JSON | [`swift/`](swift/) |
+| Nim | `cligen` | JSON | [`nim/`](nim/) |
+| Crystal | `OptionParser` | JSON | [`crystal/`](crystal/) |
+| Ruby | `Thor` | JSON | [`ruby/`](ruby/) |
+| Zig | — | JSON | [`zig/`](zig/) |
+| Haskell | `optparse-applicative` | JSON | [`haskell/`](haskell/) |
 
 ## Quick Start
 
@@ -132,7 +139,7 @@ Shared behavior across all implementations is documented in [`docs/specification
 
 ## Development Setup
 
-This repo uses [pre-commit](https://pre-commit.com) hooks to enforce formatting, linting, and tests across all four languages.
+This repo uses [pre-commit](https://pre-commit.com) hooks to enforce formatting, linting, and tests across all languages.
 
 With [uv](https://docs.astral.sh/uv/) installed:
 
