@@ -29,6 +29,9 @@ swift/.swiftpm/
 
 # Nim
 nim/nimcache/
+nim/examples/basic
+nim/examples/deep
+nim/examples/hidden
 
 # Crystal
 crystal/lib/
@@ -42,6 +45,7 @@ ruby/*.gem
 # Zig
 zig/zig-out/
 zig/zig-cache/
+zig/.zig-cache/
 
 # Haskell
 haskell/dist/

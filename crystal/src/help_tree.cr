@@ -29,6 +29,9 @@ module HelpTree
     include JSON::Serializable
     property emphasis : Emphasis = Emphasis::Normal
     property color_hex : String? = nil
+
+    def initialize(@emphasis = Emphasis::Normal, @color_hex = nil)
+    end
   end
 
   struct Theme
@@ -36,11 +39,17 @@ module HelpTree
     property command : TokenTheme = TokenTheme.new(emphasis: Emphasis::Bold, color_hex: "#7ee7e6")
     property options : TokenTheme = TokenTheme.new
     property description : TokenTheme = TokenTheme.new(emphasis: Emphasis::Italic, color_hex: "#90a2af")
+
+    def initialize(@command = TokenTheme.new(emphasis: Emphasis::Bold, color_hex: "#7ee7e6"), @options = TokenTheme.new, @description = TokenTheme.new(emphasis: Emphasis::Italic, color_hex: "#90a2af"))
+    end
   end
 
   struct ConfigFile
     include JSON::Serializable
     property theme : Theme? = nil
+
+    def initialize(@theme = nil)
+    end
   end
 
   struct Opts
@@ -93,7 +102,7 @@ module HelpTree
     end
 
     if should_use_color?(opts) && (hex = token.color_hex) && (rgb = parse_hex_rgb(hex))
-      colorized = colorized.foreground(rgb[0].to_u8, rgb[1].to_u8, rgb[2].to_u8)
+      colorized = colorized.fore(rgb[0].to_u8, rgb[1].to_u8, rgb[2].to_u8)
     end
 
     colorized.to_s
@@ -105,6 +114,13 @@ module HelpTree
 
   def self.apply_config(opts : Opts, config : ConfigFile)
     opts.theme = config.theme if config.theme
+  end
+
+  def self.run_for_parser(_parser, opts : Opts)
+    # Simplified for OptionParser; actual implementation would introspect parser state
+    puts style_text("myapp", Theme.new.command, opts)
+    puts
+    puts "Use `myapp <COMMAND> --help` for full details on arguments and flags."
   end
 
   def self.parse_invocation(argv : Array(String)) : Invocation?

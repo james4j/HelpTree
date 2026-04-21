@@ -85,16 +85,16 @@ pub fn styleText(allocator: std.mem.Allocator, text: []const u8, token: TextToke
 
     if (code_count == 0) return allocator.dupe(u8, text);
 
-    var result = std.ArrayList(u8).init(allocator);
-    defer result.deinit();
-    try result.appendSlice("\x1b[");
+    var result = std.ArrayList(u8).empty;
+    defer result.deinit(allocator);
+    try result.appendSlice(allocator, "\x1b[");
     for (codes[0..code_count], 0..) |code, i| {
-        if (i > 0) try result.append(';');
-        try result.writer().print("{d}", .{code});
+        if (i > 0) try result.append(allocator, ';');
+        try result.writer(allocator).print("{d}", .{code});
     }
-    try result.append('m');
-    try result.appendSlice(text);
-    try result.appendSlice("\x1b[0m");
+    try result.append(allocator, 'm');
+    try result.appendSlice(allocator, text);
+    try result.appendSlice(allocator, "\x1b[0m");
     return result.toOwnedSlice();
 }
 
@@ -108,14 +108,14 @@ pub fn hasHelpTree(argv: []const []const u8) bool {
 pub fn parseInvocation(allocator: std.mem.Allocator, argv: []const []const u8) !?HelpTreeInvocation {
     var help_tree = false;
     var depth_limit: ?usize = null;
-    var ignore = std.ArrayList([]const u8).init(allocator);
-    defer ignore.deinit();
+    var ignore = std.ArrayList([]const u8).empty;
+    defer ignore.deinit(allocator);
     var tree_all = false;
     var output: HelpTreeOutputFormat = .text;
     var style: HelpTreeStyle = .rich;
     var color: HelpTreeColor = .auto;
-    var path = std.ArrayList([]const u8).init(allocator);
-    defer path.deinit();
+    var path = std.ArrayList([]const u8).empty;
+    defer path.deinit(allocator);
 
     var i: usize = 0;
     while (i < argv.len) : (i += 1) {
@@ -129,7 +129,7 @@ pub fn parseInvocation(allocator: std.mem.Allocator, argv: []const []const u8) !
         } else if (std.mem.eql(u8, arg, "--tree-ignore") or std.mem.eql(u8, arg, "-I")) {
             i += 1;
             if (i >= argv.len) return error.MissingValue;
-            try ignore.append(argv[i]);
+            try ignore.append(allocator, argv[i]);
         } else if (std.mem.eql(u8, arg, "--tree-all") or std.mem.eql(u8, arg, "-a")) {
             tree_all = true;
         } else if (std.mem.eql(u8, arg, "--tree-output")) {
@@ -145,7 +145,7 @@ pub fn parseInvocation(allocator: std.mem.Allocator, argv: []const []const u8) !
             if (i >= argv.len) return error.MissingValue;
             color = std.meta.stringToEnum(HelpTreeColor, argv[i]) orelse return error.InvalidValue;
         } else if (!std.mem.startsWith(u8, arg, "-")) {
-            try path.append(arg);
+            try path.append(allocator, arg);
         }
     }
 
@@ -154,12 +154,12 @@ pub fn parseInvocation(allocator: std.mem.Allocator, argv: []const []const u8) !
     return HelpTreeInvocation{
         .opts = .{
             .depth_limit = depth_limit,
-            .ignore = try ignore.toOwnedSlice(),
+            .ignore = try ignore.toOwnedSlice(allocator),
             .tree_all = tree_all,
             .output = output,
             .style = style,
             .color = color,
         },
-        .path = try path.toOwnedSlice(),
+        .path = try path.toOwnedSlice(allocator),
     };
 }

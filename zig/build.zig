@@ -15,11 +15,14 @@ pub fn build(b: *std.Build) void {
     };
 
     inline for (examples) |ex| {
-        const exe = b.addExecutable(.{
-            .name = ex[0],
+        const root_mod = b.createModule(.{
             .root_source_file = b.path("examples/" ++ ex[0] ++ ".zig"),
             .target = target,
             .optimize = optimize,
+        });
+        const exe = b.addExecutable(.{
+            .name = ex[0],
+            .root_module = root_mod,
         });
         exe.root_module.addImport("help_tree", help_tree);
         b.installArtifact(exe);

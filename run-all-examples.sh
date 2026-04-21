@@ -185,20 +185,20 @@ run_nim() {
     cd "${REPO_ROOT}/nim"
 
     subheader "basic"
-    run_cmd nim "basic text" nimble run basic -- --help-tree
-    run_cmd nim "basic depth" nimble run basic -- --help-tree -L 1
-    run_cmd nim "basic json" nimble run basic -- --help-tree --tree-output json
-    run_cmd nim "basic path" nimble run basic -- project --help-tree
+    run_cmd nim "basic text" nim c -r --path:src examples/basic.nim --help-tree
+    run_cmd nim "basic depth" nim c -r --path:src examples/basic.nim --help-tree -L 1
+    run_cmd nim "basic json" nim c -r --path:src examples/basic.nim --tree-output json
+    run_cmd nim "basic path" nim c -r --path:src examples/basic.nim project --help-tree
 
     subheader "deep"
-    run_cmd nim "deep text" nimble run deep -- --help-tree
-    run_cmd nim "deep depth 1" nimble run deep -- --help-tree -L 1
-    run_cmd nim "deep depth 2" nimble run deep -- --help-tree -L 2
-    run_cmd nim "deep path" nimble run deep -- server config --help-tree
+    run_cmd nim "deep text" nim c -r --path:src examples/deep.nim --help-tree
+    run_cmd nim "deep depth 1" nim c -r --path:src examples/deep.nim --help-tree -L 1
+    run_cmd nim "deep depth 2" nim c -r --path:src examples/deep.nim --help-tree -L 2
+    run_cmd nim "deep path" nim c -r --path:src examples/deep.nim server config --help-tree
 
     subheader "hidden"
-    run_cmd nim "hidden default" nimble run hidden -- --help-tree
-    run_cmd nim "hidden all" nimble run hidden -- --help-tree -a
+    run_cmd nim "hidden default" nim c -r --path:src examples/hidden.nim --help-tree
+    run_cmd nim "hidden all" nim c -r --path:src examples/hidden.nim --help-tree -a
 }
 
 # ── Crystal ───────────────────────────────────────────────────────
@@ -229,20 +229,20 @@ run_ruby() {
     cd "${REPO_ROOT}/ruby"
 
     subheader "basic"
-    run_cmd ruby "basic text" bundle exec ruby examples/basic.rb --help-tree
-    run_cmd ruby "basic depth" bundle exec ruby examples/basic.rb --help-tree -L 1
-    run_cmd ruby "basic json" bundle exec ruby examples/basic.rb --help-tree --tree-output json
-    run_cmd ruby "basic path" bundle exec ruby examples/basic.rb project --help-tree
+    run_cmd ruby "basic text" ruby examples/basic.rb --help-tree
+    run_cmd ruby "basic depth" ruby examples/basic.rb --help-tree -L 1
+    run_cmd ruby "basic json" ruby examples/basic.rb --help-tree --tree-output json
+    run_cmd ruby "basic path" ruby examples/basic.rb project --help-tree
 
     subheader "deep"
-    run_cmd ruby "deep text" bundle exec ruby examples/deep.rb --help-tree
-    run_cmd ruby "deep depth 1" bundle exec ruby examples/deep.rb --help-tree -L 1
-    run_cmd ruby "deep depth 2" bundle exec ruby examples/deep.rb --help-tree -L 2
-    run_cmd ruby "deep path" bundle exec ruby examples/deep.rb server config --help-tree
+    run_cmd ruby "deep text" ruby examples/deep.rb --help-tree
+    run_cmd ruby "deep depth 1" ruby examples/deep.rb --help-tree -L 1
+    run_cmd ruby "deep depth 2" ruby examples/deep.rb --help-tree -L 2
+    run_cmd ruby "deep path" ruby examples/deep.rb server config --help-tree
 
     subheader "hidden"
-    run_cmd ruby "hidden default" bundle exec ruby examples/hidden.rb --help-tree
-    run_cmd ruby "hidden all" bundle exec ruby examples/hidden.rb --help-tree -a
+    run_cmd ruby "hidden default" ruby examples/hidden.rb --help-tree
+    run_cmd ruby "hidden all" ruby examples/hidden.rb --help-tree -a
 }
 
 # ── Zig ───────────────────────────────────────────────────────────

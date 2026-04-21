@@ -1,6 +1,7 @@
 .{
-    .name = "help_tree",
+    .name = .help_tree,
     .version = "0.1.0",
+    .fingerprint = 0xf2b46b47b1a0e159,
     .dependencies = .{},
     .paths = .{"src"},
 }

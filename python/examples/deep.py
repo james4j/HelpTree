@@ -4,7 +4,7 @@
 import argparse
 import sys
 
-sys.path.insert(0, "..")
+sys.path.insert(0, ".")
 from help_tree import parse_help_tree_invocation, run_for_parser, load_config, apply_config
 
 

@@ -82,10 +82,9 @@ swift run Hidden --help-tree -a
 
 ### Nim
 ```bash
-cd nim && nimble build
-nimble run basic -- --help-tree
-nimble run deep -- --help-tree -L 1
-nimble run hidden -- --help-tree -a
+cd nim && nim c -r --path:src examples/basic.nim --help-tree
+nim c -r --path:src examples/deep.nim --help-tree -L 1
+nim c -r --path:src examples/hidden.nim --help-tree -a
 ```
 
 ### Crystal
@@ -98,10 +97,9 @@ crystal run examples/hidden.cr -- --help-tree -a
 
 ### Ruby
 ```bash
-cd ruby && bundle install
-bundle exec ruby examples/basic.rb --help-tree
-bundle exec ruby examples/deep.rb --help-tree -L 1
-bundle exec ruby examples/hidden.rb --help-tree -a
+cd ruby && ruby examples/basic.rb --help-tree
+ruby examples/deep.rb --help-tree -L 1
+ruby examples/hidden.rb --help-tree -a
 ```
 
 ### Zig

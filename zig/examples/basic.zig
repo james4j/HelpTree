@@ -10,7 +10,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     if (help_tree.hasHelpTree(args)) {
-        var invocation = try help_tree.parseInvocation(allocator, args[1..]) orelse return;
+        const invocation = try help_tree.parseInvocation(allocator, args[1..]) orelse return;
         _ = invocation;
         std.debug.print("basic\n\nUse `basic <COMMAND> --help` for full details on arguments and flags.\n", .{});
         return;
