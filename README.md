@@ -30,6 +30,9 @@ myapp
 | Ruby | `Thor` | JSON | [`ruby/`](ruby/) |
 | Zig | — | JSON | [`zig/`](zig/) |
 | Haskell | `optparse-applicative` | JSON | [`haskell/`](haskell/) |
+| C | — | JSON | [`c/`](c/) |
+| C++ | `CLI11` | JSON | [`cpp/`](cpp/) |
+| Java | `picocli` | JSON | [`java/`](java/) |
 
 ## Quick Start
 

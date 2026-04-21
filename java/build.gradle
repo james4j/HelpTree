@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'info.picocli:picocli:4.7.7'
+}
+
+application {
+    mainClass = project.findProperty('mainClass') ?: 'helptree.examples.Basic'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'helptree.examples.Basic'
+    }
+}

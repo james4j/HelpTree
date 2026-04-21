@@ -54,6 +54,23 @@ haskell/.cabal-sandbox/
 haskell/cabal.sandbox.config
 haskell/.stack-work/
 
+# C
+c/examples/basic
+c/examples/deep
+c/examples/hidden
+
+# C++
+cpp/build/
+cpp/CMakeCache.txt
+cpp/CMakeFiles/
+cpp/cmake_install.cmake
+cpp/Makefile
+
+# Java
+java/build/
+java/.gradle/
+java/gradle.properties
+
 # General
 .DS_Store
 *.swp

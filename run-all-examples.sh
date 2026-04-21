@@ -271,9 +271,7 @@ run_zig() {
 run_haskell() {
     header "Haskell (optparse-applicative)"
     cd "${REPO_ROOT}/haskell"
-
-    # Ensure ghcup/stack are in PATH for non-interactive shells
-    export PATH="${HOME}/.ghcup/bin:${HOME}/.local/bin:${PATH}"
+    export PATH="$HOME/.ghcup/bin:$PATH"
 
     subheader "basic"
     run_cmd haskell "basic text" stack run basic -- --help-tree
@@ -292,12 +290,79 @@ run_haskell() {
     run_cmd haskell "hidden all" stack run hidden -- --help-tree -a
 }
 
-# ── Dispatcher ────────────────────────────────────────────────────
+# ── C ─────────────────────────────────────────────────────────────
+run_c() {
+    header "C (manual)"
+    cd "${REPO_ROOT}/c"
+    make basic deep hidden
 
+    subheader "basic"
+    run_cmd c "basic text" ./examples/basic --help-tree
+    run_cmd c "basic depth" ./examples/basic --help-tree -L 1
+    run_cmd c "basic json" ./examples/basic --help-tree --tree-output json
+    run_cmd c "basic path" ./examples/basic project --help-tree
+
+    subheader "deep"
+    run_cmd c "deep text" ./examples/deep --help-tree
+    run_cmd c "deep depth 1" ./examples/deep --help-tree -L 1
+    run_cmd c "deep depth 2" ./examples/deep --help-tree -L 2
+    run_cmd c "deep path" ./examples/deep server config --help-tree
+
+    subheader "hidden"
+    run_cmd c "hidden default" ./examples/hidden --help-tree
+    run_cmd c "hidden all" ./examples/hidden --help-tree -a
+}
+
+# ── C++ ───────────────────────────────────────────────────────────
+run_cpp() {
+    header "C++ (CLI11)"
+    cd "${REPO_ROOT}/cpp"
+    cmake -B build >/dev/null 2>&1 && cmake --build build >/dev/null 2>&1
+
+    subheader "basic"
+    run_cmd cpp "basic text" ./build/examples/basic --help-tree
+    run_cmd cpp "basic depth" ./build/examples/basic --help-tree -L 1
+    run_cmd cpp "basic json" ./build/examples/basic --help-tree --tree-output json
+    run_cmd cpp "basic path" ./build/examples/basic project --help-tree
+
+    subheader "deep"
+    run_cmd cpp "deep text" ./build/examples/deep --help-tree
+    run_cmd cpp "deep depth 1" ./build/examples/deep --help-tree -L 1
+    run_cmd cpp "deep depth 2" ./build/examples/deep --help-tree -L 2
+    run_cmd cpp "deep path" ./build/examples/deep server config --help-tree
+
+    subheader "hidden"
+    run_cmd cpp "hidden default" ./build/examples/hidden --help-tree
+    run_cmd cpp "hidden all" ./build/examples/hidden --help-tree -a
+}
+
+# ── Java ──────────────────────────────────────────────────────────
+run_java() {
+    header "Java (picocli)"
+    cd "${REPO_ROOT}/java"
+    gradle build >/dev/null 2>&1
+
+    subheader "basic"
+    run_cmd java "basic text" gradle run -PmainClass=helptree.examples.Basic --args="--help-tree"
+    run_cmd java "basic depth" gradle run -PmainClass=helptree.examples.Basic --args="--help-tree -L 1"
+    run_cmd java "basic json" gradle run -PmainClass=helptree.examples.Basic --args="--help-tree --tree-output json"
+    run_cmd java "basic path" gradle run -PmainClass=helptree.examples.Basic --args="project --help-tree"
+
+    subheader "deep"
+    run_cmd java "deep text" gradle run -PmainClass=helptree.examples.Deep --args="--help-tree"
+    run_cmd java "deep depth 1" gradle run -PmainClass=helptree.examples.Deep --args="--help-tree -L 1"
+    run_cmd java "deep depth 2" gradle run -PmainClass=helptree.examples.Deep --args="--help-tree -L 2"
+    run_cmd java "deep path" gradle run -PmainClass=helptree.examples.Deep --args="server config --help-tree"
+
+    subheader "hidden"
+    run_cmd java "hidden default" gradle run -PmainClass=helptree.examples.Hidden --args="--help-tree"
+    run_cmd java "hidden all" gradle run -PmainClass=helptree.examples.Hidden --args="--help-tree -a"
+}
+
+# ── Run all ───────────────────────────────────────────────────────
 run_all() {
     local failed=0
-
-    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell; do
+    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java; do
         if ! "run_${lang}" 2>&1; then
             failed=$((failed + 1))
             echo ""
@@ -322,12 +387,12 @@ if [[ $# -eq 0 ]]; then
 else
     LANG="$1"
     case "$LANG" in
-        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell)
+        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java)
             "run_${LANG}" 2>&1
             ;;
         *)
             echo "Unknown language: $LANG"
-            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell"
+            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java"
             exit 1
             ;;
     esac

@@ -118,6 +118,30 @@ stack run deep -- --help-tree -L 1
 stack run hidden -- --help-tree -a
 ```
 
+### C
+```bash
+cd c && make basic deep hidden
+./examples/basic --help-tree
+./examples/deep --help-tree -L 1
+./examples/hidden --help-tree -a
+```
+
+### C++
+```bash
+cd cpp && cmake -B build && cmake --build build
+./build/examples/basic --help-tree
+./build/examples/deep --help-tree -L 1
+./build/examples/hidden --help-tree -a
+```
+
+### Java
+```bash
+cd java && gradle build
+gradle run -PmainClass=helptree.examples.Basic --args="--help-tree"
+gradle run -PmainClass=helptree.examples.Deep --args="--help-tree -L 1"
+gradle run -PmainClass=helptree.examples.Hidden --args="--help-tree -a"
+```
+
 ## Running All Examples
 
 A convenience script `run-all-examples.sh` at the repo root runs all examples across all languages:
