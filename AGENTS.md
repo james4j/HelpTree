@@ -15,6 +15,13 @@ HelpTree/
 ├── ruby/           — Ruby gem (Thor integration)
 ├── zig/            — Zig module
 ├── haskell/        — Haskell library (optparse-applicative integration)
+├── c/              — C99 library
+├── cpp/            — C++ header-only library (CLI11 integration)
+├── java/           — Java library (picocli integration)
+├── kotlin/         — Kotlin library (Clikt integration)
+├── julia/          — Julia package (ArgParse integration)
+├── lua/            — Pure Lua library
+├── ocaml/          — Pure OCaml library
 ├── docs/           — Shared specification and config schema
 ├── tests/          — Shared fixtures & compliance expectations
 ├── README.md       — Public landing page

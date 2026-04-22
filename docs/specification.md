@@ -56,7 +56,7 @@ Rules:
 - `command_name` is styled by the theme's `command` token
 - `positional_suffix` shows required `<ARG>` and optional `[ARG]` positionals, plus `[flags]` if any non-hidden flags exist
 - `description` is styled by the theme's `description` token
-- Dots pad the description to a visual column (target ~32 chars from line start, minimum 4 dots)
+- Dots pad the description to a visual column (target alignment width from line start, minimum 4 dots)
 - Root-level non-hidden options MAY be printed above the tree as a quick reference
 
 #### JSON
@@ -130,9 +130,9 @@ ANSI styling rules:
 
 Implementations SHOULD support per-project theme overrides via config files.
 
-**Preferred formats by language:**
-- Rust: TOML (`help-tree.toml`)
-- Python, TypeScript, Go: JSON (`help-tree.json`)
+**Format:**
+- All languages: JSON (`help-tree.json`)
+- Rust additionally: TOML (`help-tree.toml`)
 
 **Common JSON schema:**
 
@@ -208,3 +208,64 @@ See [`tests/fixtures/`](tests/fixtures/) for shared test command trees and expec
 - `cobra` auto-adds `help` command and `--help` flag; filter both
 - Hidden commands use `cmd.Hidden = true`
 - Config: JSON via `encoding/json`
+
+### C# (System.CommandLine)
+- Uses `Command.Subcommands`, `Command.Options`, and `Command.Arguments`
+- `System.CommandLine` auto-adds `--help` and `--version`; filter both
+- Hidden commands use `command.IsHidden = true`
+- Config: JSON via `System.Text.Json`
+
+### Swift (ArgumentParser)
+- Uses `AsyncParsableCommand` reflection via `CommandConfiguration` and `Option`/`Argument` wrappers
+- `ArgumentParser` auto-adds `--help`; filter it out
+- Config: JSON via `Foundation.JSONDecoder`
+
+### Nim (cligen)
+- Uses `dispatchCf` for framework integration or manual `TreeCommand` construction
+- Config: JSON via `std/json`
+
+### Crystal (OptionParser)
+- Uses `OptionParser` metadata or manual `TreeCommand` construction
+- Config: JSON via `JSON.parse`
+
+### Ruby (Thor)
+- Uses `Thor` command/option introspection or manual `TreeCommand` construction
+- Config: JSON via `JSON.parse`
+
+### Zig
+- Manual `TreeCommand` construction; no framework integration
+- Config: manual JSON parser (no external dependency)
+
+### Haskell (optparse-applicative)
+- Uses `optparse-applicative` command/option introspection or manual `TreeCommand` construction
+- Config: JSON via `aeson`
+
+### C
+- Manual `ht_command_t` construction; no framework integration
+- Config: minimal hand-rolled JSON parser (no external dependency)
+
+### C++ (CLI11)
+- Uses `CLI11::App` command/option introspection or manual `TreeCommand` construction
+- Config: minimal inline JSON parser (header-only, no external dependency)
+
+### Java (picocli)
+- Uses `picocli` command/option introspection via `CommandLine` reflection
+- `picocli` auto-adds `--help` and `--version`; filter both
+- Config: JSON via `org.json` or `jackson`
+
+### Kotlin (Clikt)
+- Uses `CliktCommand` reflection via `registeredSubcommands` and `registeredOptions`
+- `Clikt` auto-adds `--help`; filter it out
+- Config: JSON via `kotlinx.serialization.json` or `org.json`
+
+### Julia (ArgParse)
+- Uses `ArgParse` command/option introspection or manual `TreeCommand` construction
+- Config: JSON via minimal pure-Julia parser
+
+### Lua
+- Manual `TreeCommand` construction; no framework integration
+- Config: minimal pure-Lua JSON parser (no external dependency)
+
+### OCaml
+- Manual `cmd` record construction; no framework integration
+- Config: minimal recursive-descent JSON parser (no external dependency)

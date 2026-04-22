@@ -19,6 +19,22 @@ cmake -B build
 cmake --build build
 ```
 
+## Theme Config
+
+Drop a `help-tree.json` next to your binary:
+
+```json
+{
+  "theme": {
+    "command": { "emphasis": "bold", "color_hex": "#7ee7e6" },
+    "options": { "emphasis": "normal" },
+    "description": { "emphasis": "italic", "color_hex": "#90a2af" }
+  }
+}
+```
+
+The example binaries load it automatically before rendering.
+
 ## Run examples
 
 ```bash

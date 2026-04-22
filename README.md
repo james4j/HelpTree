@@ -13,25 +13,6 @@
 
 
 
-```mermaid
-graph LR
-    Root[myapp] --> Project[project]
-    Root --> Task[task]
-
-    Project --> P_List[list]
-    Project --> P_Create[create]
-
-    Task --> T_List[list]
-    Task --> T_Done[done]
-
-    style Root fill:#7ee7e6,stroke:#333,stroke-width:2px,color:#000
-    style Project fill:#90a2af,stroke:#333,color:#000
-    style Task fill:#90a2af,stroke:#333,color:#000
-```
-
-
-
-
 
 A multi-language toolkit for adding `--help-tree` to command-line interfaces.
 
@@ -141,13 +122,13 @@ func main() {
 - **Reflection-based** — Builds the tree from your CLI framework's own metadata; never goes stale.
 - **Text & JSON output** — Human-readable trees or machine-readable metadata (`--tree-output json`).
 - **Theming** — Configurable ANSI colors and text emphasis (bold, italic) per token type.
-- **Config files** — Per-project theme overrides via TOML (Rust) or JSON (Python, TypeScript, Go).
+- **Config files** — Per-project theme overrides via JSON in all languages; Rust additionally supports TOML.
 - **Filtering** — Depth limits (`-L`), ignore patterns (`-I`), and hidden-command inclusion (`-a`).
 - **Path targeting** — `myapp project --help-tree` renders the tree rooted at `project`.
 
 ## Theme Config
 
-All languages accept a JSON config with the same schema. Rust also supports TOML.
+All languages accept a JSON config with the same schema. Rust additionally supports TOML.
 
 ```json
 {
