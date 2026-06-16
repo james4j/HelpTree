@@ -1,4 +1,7 @@
 # HelpTree
+
+```text
+
  /$$   /$$           /$$        /$$$$$$$$
 | $$  | $$          | $$       |__  $$__/
 | $$  | $$  /$$$$$$ | $$  /$$$$$$ | $$  /$$$$$$  /$$$$$$   /$$$$$$
@@ -10,6 +13,7 @@
                         | $$
                         | $$
                         |__/
+```
 
 
 
@@ -28,6 +32,31 @@ myapp
     ├── list [flags] ................ List all tasks
     └── done <ID> [flags] ........... Mark a task as done
 ```
+
+## Features
+
+- **Reflection-based** — Builds the tree from your CLI framework's own metadata; never goes stale.
+- **Text & JSON output** — Human-readable trees or machine-readable metadata (`--tree-output json`).
+- **Theming** — Configurable ANSI colors and text emphasis (bold, italic) per token type.
+- **Config files** — Per-project theme overrides via JSON in all languages; Rust additionally supports TOML.
+- **Filtering** — Depth limits (`-L`), ignore patterns (`-I`), and hidden-command inclusion (`-a`).
+- **Path targeting** — `myapp project --help-tree` renders the tree rooted at `project`.
+
+## Theme Config
+
+All languages accept a JSON config with the same schema. Rust additionally supports TOML.
+
+```json
+{
+  "theme": {
+    "command": { "emphasis": "bold", "color_hex": "#7ee7e6" },
+    "options": { "emphasis": "normal" },
+    "description": { "emphasis": "italic", "color_hex": "#90a2af" }
+  }
+}
+```
+
+Drop `help-tree.toml` (Rust) or `help-tree.json` (others) next to your binary and call `load_config` / `apply_config` before rendering. See language-specific READMEs for exact APIs.
 
 ## Implementations
 
@@ -121,30 +150,6 @@ func main() {
 }
 ```
 
-## Features
-
-- **Reflection-based** — Builds the tree from your CLI framework's own metadata; never goes stale.
-- **Text & JSON output** — Human-readable trees or machine-readable metadata (`--tree-output json`).
-- **Theming** — Configurable ANSI colors and text emphasis (bold, italic) per token type.
-- **Config files** — Per-project theme overrides via JSON in all languages; Rust additionally supports TOML.
-- **Filtering** — Depth limits (`-L`), ignore patterns (`-I`), and hidden-command inclusion (`-a`).
-- **Path targeting** — `myapp project --help-tree` renders the tree rooted at `project`.
-
-## Theme Config
-
-All languages accept a JSON config with the same schema. Rust additionally supports TOML.
-
-```json
-{
-  "theme": {
-    "command": { "emphasis": "bold", "color_hex": "#7ee7e6" },
-    "options": { "emphasis": "normal" },
-    "description": { "emphasis": "italic", "color_hex": "#90a2af" }
-  }
-}
-```
-
-Drop `help-tree.toml` (Rust) or `help-tree.json` (others) next to your binary and call `load_config` / `apply_config` before rendering. See language-specific READMEs for exact APIs.
 
 ## Examples
 
@@ -215,3 +220,5 @@ Or run pre-commit directly without activating:
 ## License
 
 MIT
+
+## All code written by Kimi 2.6 using the KiloCode CLi
