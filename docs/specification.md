@@ -269,3 +269,14 @@ See [`tests/fixtures/`](tests/fixtures/) for shared test command trees and expec
 ### OCaml
 - Manual `cmd` record construction; no framework integration
 - Config: minimal recursive-descent JSON parser (no external dependency)
+
+### D
+- Manual `TreeCommand` construction; no framework integration
+- Config: JSON via `std.json` (Phobos standard library)
+
+### Zero (Experimental)
+- Manual data-oriented construction using flat arrays and indices
+- **Limitation**: Zero's MIR backend (v0.3.4) doesn't support complex struct types (`TreeCommand`, `TreeOption`, etc.) as function parameters
+- Requires restructuring to use only primitives, `Span<u8>`, `String`, and `Maybe<primitive>`
+- Config: minimal JSON parser using `std.json`
+- Implementation has limited functionality compared to other languages

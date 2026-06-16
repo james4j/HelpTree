@@ -1,0 +1,4 @@
+#V2
+SELECT count() AS n, language FROM methods WHERE project_id.name = 'HelpTree' GROUP BY language ORDER BY n DESC;
+SELECT count() AS n, owner_type FROM methods WHERE project_id.name = 'HelpTree' AND owner_type IS NOT NONE AND owner_type != NONE AND owner_type != 'anonymous' AND string::len(owner_type) > 0 GROUP BY owner_type ORDER BY n DESC LIMIT 20;
+SELECT count() AS n, name FROM methods WHERE project_id.name = 'HelpTree' AND file_path CONTAINS 'help_tree.c' GROUP BY name LIMIT 5;

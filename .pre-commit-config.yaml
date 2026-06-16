@@ -150,3 +150,13 @@ repos:
         language: system
         files: ^haskell/.*\.hs$
         pass_filenames: false
+
+  # D
+  - repo: local
+    hooks:
+      - id: d-build
+        name: dub build
+        entry: bash -c 'cd d && dub build --config=basic --config=deep --config=hidden'
+        language: system
+        files: ^d/.*\.d$
+        pass_filenames: false

@@ -1,0 +1,39 @@
+{
+  "name": "help-tree",
+  "description": "CLI help-tree implementation for D",
+  "authors": ["HelpTree Contributors"],
+  "license": "MIT",
+  "targetType": "library",
+  "sourcePaths": ["source"],
+  "importPaths": ["source"],
+  "configurations": [
+    {
+      "name": "library",
+      "targetType": "library"
+    },
+    {
+      "name": "basic",
+      "targetType": "executable",
+      "targetName": "basic",
+      "mainSourceFile": "examples/basic.d",
+      "sourcePaths": ["source", "examples"],
+      "importPaths": ["source"]
+    },
+    {
+      "name": "deep",
+      "targetType": "executable",
+      "targetName": "deep",
+      "mainSourceFile": "examples/deep.d",
+      "sourcePaths": ["source", "examples"],
+      "importPaths": ["source"]
+    },
+    {
+      "name": "hidden",
+      "targetType": "executable",
+      "targetName": "hidden",
+      "mainSourceFile": "examples/hidden.d",
+      "sourcePaths": ["source", "examples"],
+      "importPaths": ["source"]
+    }
+  ]
+}

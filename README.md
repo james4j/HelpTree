@@ -51,6 +51,10 @@ myapp
 | Julia | `ArgParse` | JSON | [`julia/`](julia/) |
 | Lua | — | JSON | [`lua/`](lua/) |
 | OCaml | — | JSON | [`ocaml/`](ocaml/) |
+| D | — | JSON | [`d/`](d/) |
+| Zero | — | JSON | [`zero/`](zero/) ⚠️ |
+
+> ⚠️ **Zero**: Experimental implementation. Zero's current compiler (v0.3.4) MIR backend doesn't support complex struct types as function parameters. The implementation uses a data-oriented design with flat arrays and indices, but has limited functionality compared to other languages.
 
 ## Quick Start
 

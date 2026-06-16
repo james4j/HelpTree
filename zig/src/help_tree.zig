@@ -79,16 +79,16 @@ pub const discovery_options = &[_]TreeOption{
 
 pub const verbose_option = TreeOption{ .name = "verbose", .long = "--verbose", .description = "Verbose output", .required = false, .takes_value = false };
 
-fn shouldUseColor(opts: HelpTreeOpts) bool {
+fn shouldUseColor(io: std.Io, opts: HelpTreeOpts) bool {
     return switch (opts.color) {
         .always => true,
         .never => false,
-        .auto => std.fs.File.stdout().isTty(),
+        .auto => std.Io.File.stdout().isTty(io) catch false,
     };
 }
 
 fn parseHexRgb(hex: []const u8) ?struct { r: u8, g: u8, b: u8 } {
-    const h = std.mem.trimLeft(u8, hex, "#");
+    const h = std.mem.trimStart(u8, hex, "#");
     if (h.len != 6) return null;
     const r = std.fmt.parseInt(u8, h[0..2], 16) catch return null;
     const g = std.fmt.parseInt(u8, h[2..4], 16) catch return null;
@@ -96,7 +96,7 @@ fn parseHexRgb(hex: []const u8) ?struct { r: u8, g: u8, b: u8 } {
     return .{ .r = r, .g = g, .b = b };
 }
 
-fn styleText(buf: []u8, text: []const u8, token: TextTokenTheme, opts: HelpTreeOpts) ![]const u8 {
+fn styleText(io: std.Io, buf: []u8, text: []const u8, token: TextTokenTheme, opts: HelpTreeOpts) ![]const u8 {
     if (opts.style == .plain or (token.emphasis == .normal and token.color_hex == null))
         return text;
 
@@ -116,7 +116,7 @@ fn styleText(buf: []u8, text: []const u8, token: TextTokenTheme, opts: HelpTreeO
         .normal => {},
     }
 
-    if (shouldUseColor(opts)) {
+    if (shouldUseColor(io, opts)) {
         if (token.color_hex) |hex| {
             if (parseHexRgb(hex)) |rgb| {
                 if (codes_off > 0) {
@@ -178,7 +178,7 @@ fn commandSignature(cmd: TreeCommand, tree_all: bool, buf: []u8) !struct { name:
     return .{ .name = cmd.name, .suffix = buf[0..off] };
 }
 
-fn renderTextLines(allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []const u8, depth: usize, opts: HelpTreeOpts, out: *std.ArrayList(u8)) !void {
+fn renderTextLines(io: std.Io, allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []const u8, depth: usize, opts: HelpTreeOpts, out: *std.ArrayList(u8)) !void {
     var items: [32]TreeCommand = undefined;
     var item_count: usize = 0;
     for (cmd.subcommands) |sub| {
@@ -202,9 +202,9 @@ fn renderTextLines(allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []con
         const about = sub.description;
 
         var style_buf: [256]u8 = undefined;
-        const name_styled = try styleText(&style_buf, sig.name, opts.theme.command, opts);
+        const name_styled = try styleText(io, &style_buf, sig.name, opts.theme.command, opts);
         var style_buf2: [256]u8 = undefined;
-        const suffix_styled = try styleText(&style_buf2, sig.suffix, opts.theme.options, opts);
+        const suffix_styled = try styleText(io, &style_buf2, sig.suffix, opts.theme.options, opts);
 
         try out.appendSlice(allocator, prefix);
         try out.appendSlice(allocator, branch);
@@ -219,7 +219,7 @@ fn renderTextLines(allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []con
             try out.appendNTimes(allocator, '.', actual_dots);
             try out.appendSlice(allocator, " ");
             var style_buf3: [256]u8 = undefined;
-            const about_styled = try styleText(&style_buf3, about, opts.theme.description, opts);
+            const about_styled = try styleText(io, &style_buf3, about, opts.theme.description, opts);
             try out.appendSlice(allocator, about_styled);
         }
         try out.appendSlice(allocator, "\n");
@@ -229,16 +229,16 @@ fn renderTextLines(allocator: std.mem.Allocator, cmd: TreeCommand, prefix: []con
         const extension = if (is_last) "    " else "│   ";
         var next_prefix_buf: [256]u8 = undefined;
         const next_prefix = try std.fmt.bufPrint(&next_prefix_buf, "{s}{s}", .{ prefix, extension });
-        try renderTextLines(allocator, sub, next_prefix, depth + 1, opts, out);
+        try renderTextLines(io, allocator, sub, next_prefix, depth + 1, opts, out);
     }
 }
 
-fn renderText(allocator: std.mem.Allocator, cmd: TreeCommand, opts: HelpTreeOpts) ![]const u8 {
+fn renderText(io: std.Io, allocator: std.mem.Allocator, cmd: TreeCommand, opts: HelpTreeOpts) ![]const u8 {
     var out = std.ArrayList(u8).empty;
     defer out.deinit(allocator);
 
     var style_buf: [256]u8 = undefined;
-    const name_styled = try styleText(&style_buf, cmd.name, opts.theme.command, opts);
+    const name_styled = try styleText(io, &style_buf, cmd.name, opts.theme.command, opts);
     try out.appendSlice(allocator, name_styled);
     try out.appendSlice(allocator, "\n");
 
@@ -255,9 +255,9 @@ fn renderText(allocator: std.mem.Allocator, cmd: TreeCommand, opts: HelpTreeOpts
         defer if (opt.short.len > 0 and opt.long.len > 0) allocator.free(meta);
 
         var style_buf_meta: [256]u8 = undefined;
-        const meta_styled = try styleText(&style_buf_meta, meta, opts.theme.options, opts);
+        const meta_styled = try styleText(io, &style_buf_meta, meta, opts.theme.options, opts);
         var style_buf_desc: [256]u8 = undefined;
-        const desc_styled = try styleText(&style_buf_desc, opt.description, opts.theme.description, opts);
+        const desc_styled = try styleText(io, &style_buf_desc, opt.description, opts.theme.description, opts);
 
         try out.appendSlice(allocator, "  ");
         try out.appendSlice(allocator, meta_styled);
@@ -268,7 +268,7 @@ fn renderText(allocator: std.mem.Allocator, cmd: TreeCommand, opts: HelpTreeOpts
 
     if (cmd.subcommands.len > 0) {
         try out.appendSlice(allocator, "\n");
-        try renderTextLines(allocator, cmd, "", 0, opts, &out);
+        try renderTextLines(io, allocator, cmd, "", 0, opts, &out);
     }
 
     return out.toOwnedSlice(allocator);
@@ -401,23 +401,25 @@ fn findByPath(cmd: TreeCommand, path: []const []const u8) TreeCommand {
     return result;
 }
 
-pub fn runForTree(allocator: std.mem.Allocator, root: TreeCommand, opts: HelpTreeOpts, requested_path: []const []const u8) !void {
+pub fn runForTree(io: std.Io, allocator: std.mem.Allocator, root: TreeCommand, opts: HelpTreeOpts, requested_path: []const []const u8) !void {
     const selected = findByPath(root, requested_path);
     if (opts.output == .json) {
         var out = std.ArrayList(u8).empty;
         defer out.deinit(allocator);
-        try cmdToJson(out.writer(allocator), selected, opts, 0);
+        var writer = std.Io.Writer.Allocating.fromArrayList(allocator, &out);
+        defer writer.deinit();
+        try cmdToJson(&writer.writer, selected, opts, 0);
         try out.append(allocator, '\n');
         const slice = try out.toOwnedSlice(allocator);
         defer allocator.free(slice);
-        try std.fs.File.stdout().writeAll(slice);
+        try std.Io.File.stdout().writeStreamingAll(io, slice);
     } else {
-        const txt = try renderText(allocator, selected, opts);
+        const txt = try renderText(io, allocator, selected, opts);
         defer allocator.free(txt);
-        try std.fs.File.stdout().writeAll(txt);
-        try std.fs.File.stdout().writeAll("\n\nUse `");
-        try std.fs.File.stdout().writeAll(root.name);
-        try std.fs.File.stdout().writeAll(" <COMMAND> --help` for full details on arguments and flags.\n");
+        try std.Io.File.stdout().writeStreamingAll(io, txt);
+        try std.Io.File.stdout().writeStreamingAll(io, "\n\nUse `");
+        try std.Io.File.stdout().writeStreamingAll(io, root.name);
+        try std.Io.File.stdout().writeStreamingAll(io, " <COMMAND> --help` for full details on arguments and flags.\n");
     }
 }
 
@@ -603,8 +605,8 @@ pub const HelpTreeConfigFile = struct {
     }
 };
 
-pub fn loadConfig(allocator: std.mem.Allocator, path: []const u8) !?HelpTreeConfigFile {
-    const data = std.fs.cwd().readFileAlloc(allocator, path, 1024 * 1024) catch |err| switch (err) {
+pub fn loadConfig(io: std.Io, allocator: std.mem.Allocator, path: []const u8) !?HelpTreeConfigFile {
+    const data = std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(1024 * 1024)) catch |err| switch (err) {
         error.FileNotFound => return null,
         else => |e| return e,
     };

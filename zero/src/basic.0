@@ -1,0 +1,19 @@
+use help_tree
+use std.mem
+
+pub fn main(world: World) -> Void raises {
+    var arg_storage: [16]String = [""; 16]
+    var arg_len: usize = 0
+    var i: usize = 1
+    while i < std.args.len() {
+        let a: Maybe<String> = std.args.get(i)
+        if a.has && arg_len < 16 {
+            arg_storage[arg_len] = a.value
+            arg_len = arg_len + 1
+        }
+        i = i + 1
+    }
+
+    var out: [4096]u8 = [0_u8; 4096]
+    check runBasicExample(world, out, arg_storage, arg_len)
+}

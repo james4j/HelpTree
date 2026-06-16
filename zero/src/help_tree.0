@@ -1,0 +1,1019 @@
+use std.mem
+use std.str
+use std.parse
+use std.fmt
+use std.json
+use std.fs
+use std.ascii
+use std.io
+
+const TREE_ALIGN_WIDTH: usize = 28
+const MIN_DOTS: usize = 4
+
+type TextTokenTheme {
+    emphasis: Span<u8>,
+    color_hex: Span<u8>,
+}
+
+type Theme {
+    command: TextTokenTheme,
+    options: TextTokenTheme,
+    description: TextTokenTheme,
+}
+
+type HelpTreeOpts {
+    depth_limit: Maybe<usize>,
+    tree_all: Bool,
+    output_json: Bool,
+    style_plain: Bool,
+    color_always: Bool,
+    color_never: Bool,
+    help_tree_found: Bool,
+    theme: Theme,
+}
+
+type TreeOption {
+    name: Span<u8>,
+    short: Span<u8>,
+    long: Span<u8>,
+    description: Span<u8>,
+    required: Bool,
+    takes_value: Bool,
+    hidden: Bool,
+}
+
+type TreeArgument {
+    name: Span<u8>,
+    description: Span<u8>,
+    required: Bool,
+    hidden: Bool,
+}
+
+type TreeCommand {
+    name: Span<u8>,
+    description: Span<u8>,
+    options: Span<TreeOption>,
+    arguments: Span<TreeArgument>,
+    subcommands: Span<TreeCommand>,
+    hidden: Bool,
+}
+
+fn defaultTheme() -> Theme {
+    return Theme { command: TextTokenTheme { emphasis: std.mem.span("bold"), color_hex: std.mem.span("#7ee7e6") }, options: TextTokenTheme { emphasis: std.mem.span("normal"), color_hex: std.mem.span("") }, description: TextTokenTheme { emphasis: std.mem.span("italic"), color_hex: std.mem.span("#90a2af") } }
+}
+
+fn defaultOpts() -> HelpTreeOpts {
+    return HelpTreeOpts { depth_limit: null, tree_all: false, output_json: false, style_plain: false, color_always: false, color_never: false, help_tree_found: false, theme: defaultTheme() }
+}
+
+fn shouldSkipOption(opt: TreeOption, tree_all: Bool) -> Bool {
+    if tree_all {
+        return false
+    }
+    if opt.hidden {
+        return true
+    }
+    if std.mem.eql(opt.name, "help") || std.mem.eql(opt.name, "version") {
+        return true
+    }
+    return false
+}
+
+fn shouldSkipArgument(arg: TreeArgument, tree_all: Bool) -> Bool {
+    if tree_all {
+        return false
+    }
+    return arg.hidden
+}
+
+fn shouldSkipCommand(cmd: TreeCommand, opts: HelpTreeOpts) -> Bool {
+    if std.mem.eql(cmd.name, "help") {
+        return true
+    }
+    if !opts.tree_all && cmd.hidden {
+        return true
+    }
+    return false
+}
+
+fn parseHexRgb(hex: Span<u8>) -> Maybe<[3]u8> {
+    var start: usize = 0
+    if std.mem.len(hex) > 0 {
+        let first: Maybe<u8> = std.mem.get(hex, 0)
+        if first.has && first.value == 0x23 {
+            start = 1
+        }
+    }
+    let h: Span<u8> = std.mem.dropPrefix(hex, start)
+    if std.mem.len(h) != 6 {
+        return null
+    }
+    var result: [3]u8 = [0, 0, 0]
+    var i: usize = 0
+    while i < 3 {
+        let hi: Maybe<u8> = std.mem.get(h, i * 2)
+        let lo: Maybe<u8> = std.mem.get(h, i * 2 + 1)
+        if !hi.has || !lo.has {
+            return null
+        }
+        let hi_val: Maybe<u8> = std.ascii.hexValue(hi.value)
+        let lo_val: Maybe<u8> = std.ascii.hexValue(lo.value)
+        if !hi_val.has || !lo_val.has {
+            return null
+        }
+        result[i] = hi_val.value * 16 + lo_val.value
+        i = i + 1
+    }
+    return result
+}
+
+fn useColor(opts: HelpTreeOpts) -> Bool {
+    if opts.color_always {
+        return true
+    }
+    if opts.color_never {
+        return false
+    }
+    return true
+}
+
+fn styleText(buf: MutSpan<u8>, text: Span<u8>, token: TextTokenTheme, opts: HelpTreeOpts) -> Maybe<Span<u8>> {
+    if opts.style_plain {
+        return std.str.copy(buf, text)
+    }
+    let is_normal: Bool = std.mem.eql(token.emphasis, "normal")
+    let has_color: Bool = std.mem.len(token.color_hex) > 0
+    if is_normal && !has_color {
+        return std.str.copy(buf, text)
+    }
+
+    var codes_buf: [32]u8 = [0_u8; 32]
+    var codes_len: usize = 0
+
+    if std.mem.eql(token.emphasis, "bold") {
+        codes_buf[0] = 0x31
+        codes_len = 1
+    }
+    if std.mem.eql(token.emphasis, "italic") {
+        codes_buf[0] = 0x33
+        codes_len = 1
+    }
+    if std.mem.eql(token.emphasis, "bold_italic") {
+        codes_buf[0] = 0x31
+        codes_buf[1] = 0x3b
+        codes_buf[2] = 0x33
+        codes_len = 3
+    }
+
+    if useColor(opts) && has_color {
+        let rgb: Maybe<[3]u8> = parseHexRgb(token.color_hex)
+        if rgb.has {
+            if codes_len > 0 {
+                codes_buf[codes_len] = 0x3b
+                codes_len = codes_len + 1
+            }
+            let prefix: Span<u8> = std.mem.span("38;2;")
+            let prefix_result: Maybe<usize> = std.io.writeSpan(codes_buf, codes_len, prefix)
+            if prefix_result.has {
+                codes_len = prefix_result.value
+            }
+            var r_buf: [4]u8 = [0_u8; 4]
+            let r_text: Maybe<Span<u8>> = std.fmt.u32(r_buf, rgb.value[0] as u32)
+            if r_text.has {
+                let r_result: Maybe<usize> = std.io.writeSpan(codes_buf, codes_len, r_text.value)
+                if r_result.has {
+                    codes_len = r_result.value
+                }
+            }
+            codes_buf[codes_len] = 0x3b
+            codes_len = codes_len + 1
+            var g_buf: [4]u8 = [0_u8; 4]
+            let g_text: Maybe<Span<u8>> = std.fmt.u32(g_buf, rgb.value[1] as u32)
+            if g_text.has {
+                let g_result: Maybe<usize> = std.io.writeSpan(codes_buf, codes_len, g_text.value)
+                if g_result.has {
+                    codes_len = g_result.value
+                }
+            }
+            codes_buf[codes_len] = 0x3b
+            codes_len = codes_len + 1
+            var b_buf: [4]u8 = [0_u8; 4]
+            let b_text: Maybe<Span<u8>> = std.fmt.u32(b_buf, rgb.value[2] as u32)
+            if b_text.has {
+                let b_result: Maybe<usize> = std.io.writeSpan(codes_buf, codes_len, b_text.value)
+                if b_result.has {
+                    codes_len = b_result.value
+                }
+            }
+        }
+    }
+
+    if codes_len == 0 {
+        return std.str.copy(buf, text)
+    }
+
+    var pos: usize = 0
+    buf[pos] = 0x1b
+    pos = pos + 1
+    buf[pos] = 0x5b
+    pos = pos + 1
+    let codes_view: Span<u8> = std.mem.prefix(codes_buf, codes_len)
+    let codes_result: Maybe<usize> = std.io.writeSpan(buf, pos, codes_view)
+    if codes_result.has {
+        pos = codes_result.value
+    }
+    buf[pos] = 0x6d
+    pos = pos + 1
+    let text_result: Maybe<usize> = std.io.writeSpan(buf, pos, text)
+    if text_result.has {
+        pos = text_result.value
+    }
+    buf[pos] = 0x1b
+    pos = pos + 1
+    buf[pos] = 0x5b
+    pos = pos + 1
+    buf[pos] = 0x30
+    pos = pos + 1
+    buf[pos] = 0x6d
+    pos = pos + 1
+    return std.mem.prefix(buf, pos)
+}
+
+fn writeText(out: MutSpan<u8>, pos: usize, text: Span<u8>) -> usize {
+    let result: Maybe<usize> = std.io.writeSpan(out, pos, text)
+    if result.has {
+        return result.value
+    }
+    return pos
+}
+
+fn writeTextStr(out: MutSpan<u8>, pos: usize, text: String) -> usize {
+    let result: Maybe<usize> = std.io.writeSpan(out, pos, std.mem.span(text))
+    if result.has {
+        return result.value
+    }
+    return pos
+}
+
+type TextTreeFrame {
+    cmd: TreeCommand,
+    idx: usize,
+    count: usize,
+    depth: usize,
+    is_last: Bool,
+}
+
+fn renderTextLines(out: MutSpan<u8>, pos: usize, root: TreeCommand, opts: HelpTreeOpts) -> usize {
+    var p: usize = pos
+    var stack: [32]TextTreeFrame = [TextTreeFrame { cmd: root, idx: 0, count: 0, depth: 0, is_last: false }; 32]
+    var stack_len: usize = 0
+    var prefix_buf: [128]u8 = [0_u8; 128]
+    var prefix_len: usize = 0
+
+    var root_count: usize = 0
+    var rc_i: usize = 0
+    while rc_i < std.mem.len(root.subcommands) {
+        if !shouldSkipCommand(root.subcommands[rc_i], opts) {
+            root_count = root_count + 1
+        }
+        rc_i = rc_i + 1
+    }
+    if root_count == 0 {
+        return p
+    }
+    stack[0] = TextTreeFrame { cmd: root, idx: 0, count: root_count, depth: 0, is_last: false }
+    stack_len = 1
+
+    while stack_len > 0 {
+        let top: TextTreeFrame = stack[stack_len - 1]
+        let next_i: usize = top.idx + 1
+        stack[stack_len - 1].idx = next_i
+
+        if next_i >= top.count {
+            stack_len = stack_len - 1
+            var rb_len: usize = 0
+            var rb_k: usize = 0
+            while rb_k < stack_len {
+                if stack[rb_k].is_last {
+                    let sp: Span<u8> = std.mem.span("    ")
+                    let rb_r: Maybe<usize> = std.io.writeSpan(prefix_buf, rb_len, sp)
+                    if rb_r.has {
+                        rb_len = rb_r.value
+                    }
+                } else {
+                    let bar: Span<u8> = std.mem.span("│   ")
+                    let rb_r: Maybe<usize> = std.io.writeSpan(prefix_buf, rb_len, bar)
+                    if rb_r.has {
+                        rb_len = rb_r.value
+                    }
+                }
+                rb_k = rb_k + 1
+            }
+            prefix_len = rb_len
+            continue
+        }
+
+        var visible_idx: usize = 0
+        var scan_j: usize = 0
+        var found_sub: TreeCommand = top.cmd.subcommands[0]
+        var found: Bool = false
+        while scan_j < std.mem.len(top.cmd.subcommands) {
+            if !shouldSkipCommand(top.cmd.subcommands[scan_j], opts) {
+                visible_idx = visible_idx + 1
+                if visible_idx == next_i {
+                    found_sub = top.cmd.subcommands[scan_j]
+                    found = true
+                }
+            }
+            scan_j = scan_j + 1
+        }
+        if !found {
+            continue
+        }
+        let sub: TreeCommand = found_sub
+        let is_last: Bool = next_i == top.count
+        stack[stack_len - 1].is_last = is_last
+        let child_depth: usize = top.depth + 1
+
+        if prefix_len > 0 {
+            let prefix_view: Span<u8> = std.mem.prefix(prefix_buf, prefix_len)
+            p = writeText(out, p, prefix_view)
+        }
+
+        if is_last {
+            p = writeTextStr(out, p, "└── ")
+        } else {
+            p = writeTextStr(out, p, "├── ")
+        }
+
+        var name_buf: [128]u8 = [0_u8; 128]
+        let name_styled: Maybe<Span<u8>> = styleText(name_buf, sub.name, opts.theme.command, opts)
+        if name_styled.has {
+            p = writeText(out, p, name_styled.value)
+        }
+
+        var sig_buf: [128]u8 = [0_u8; 128]
+        var sig_len: usize = 0
+        var sig_j: usize = 0
+        while sig_j < std.mem.len(sub.arguments) {
+            let arg: TreeArgument = sub.arguments[sig_j]
+            if !shouldSkipArgument(arg, opts.tree_all) {
+                if arg.required {
+                    sig_buf[sig_len] = 0x20
+                    sig_len = sig_len + 1
+                    sig_buf[sig_len] = 0x3c
+                    sig_len = sig_len + 1
+                    let ar: Maybe<usize> = std.io.writeSpan(sig_buf, sig_len, arg.name)
+                    if ar.has {
+                        sig_len = ar.value
+                    }
+                    sig_buf[sig_len] = 0x3e
+                    sig_len = sig_len + 1
+                } else {
+                    sig_buf[sig_len] = 0x20
+                    sig_len = sig_len + 1
+                    sig_buf[sig_len] = 0x5b
+                    sig_len = sig_len + 1
+                    let ar: Maybe<usize> = std.io.writeSpan(sig_buf, sig_len, arg.name)
+                    if ar.has {
+                        sig_len = ar.value
+                    }
+                    sig_buf[sig_len] = 0x5d
+                    sig_len = sig_len + 1
+                }
+            }
+            sig_j = sig_j + 1
+        }
+
+        var has_flags: Bool = false
+        var fl_j: usize = 0
+        while fl_j < std.mem.len(sub.options) {
+            if !shouldSkipOption(sub.options[fl_j], opts.tree_all) {
+                has_flags = true
+                break
+            }
+            fl_j = fl_j + 1
+        }
+        if has_flags {
+            let flags_text: Span<u8> = std.mem.span(" [flags]")
+            let fr: Maybe<usize> = std.io.writeSpan(sig_buf, sig_len, flags_text)
+            if fr.has {
+                sig_len = fr.value
+            }
+        }
+
+        let suffix: Span<u8> = std.mem.prefix(sig_buf, sig_len)
+        var suffix_buf: [128]u8 = [0_u8; 128]
+        let suffix_styled: Maybe<Span<u8>> = styleText(suffix_buf, suffix, opts.theme.options, opts)
+        if suffix_styled.has {
+            p = writeText(out, p, suffix_styled.value)
+        }
+
+        let sig_total: usize = std.mem.len(sub.name) + sig_len
+
+        if std.mem.len(sub.description) > 0 {
+            p = writeTextStr(out, p, " ")
+            let dots_len_raw: isize = TREE_ALIGN_WIDTH as isize - sig_total as isize
+            var dots_len: usize = MIN_DOTS
+            if dots_len_raw >= MIN_DOTS as isize {
+                dots_len = dots_len_raw as usize
+            }
+            var d: usize = 0
+            while d < dots_len {
+                out[p] = 0x2e
+                p = p + 1
+                d = d + 1
+            }
+            p = writeTextStr(out, p, " ")
+            var desc_buf: [128]u8 = [0_u8; 128]
+            let desc_styled: Maybe<Span<u8>> = styleText(desc_buf, sub.description, opts.theme.description, opts)
+            if desc_styled.has {
+                p = writeText(out, p, desc_styled.value)
+            }
+        }
+        p = writeTextStr(out, p, "\n")
+
+        let at_limit: Bool = opts.depth_limit.has && child_depth >= opts.depth_limit.value
+        if !at_limit && std.mem.len(sub.subcommands) > 0 {
+            var child_count: usize = 0
+            var cc_k: usize = 0
+            while cc_k < std.mem.len(sub.subcommands) {
+                if !shouldSkipCommand(sub.subcommands[cc_k], opts) {
+                    child_count = child_count + 1
+                }
+                cc_k = cc_k + 1
+            }
+            if child_count > 0 && stack_len < 32 {
+                var ext_len: usize = prefix_len
+                if is_last {
+                    let ext: Span<u8> = std.mem.span("    ")
+                    let er: Maybe<usize> = std.io.writeSpan(prefix_buf, ext_len, ext)
+                    if er.has {
+                        ext_len = er.value
+                    }
+                } else {
+                    let ext: Span<u8> = std.mem.span("│   ")
+                    let er: Maybe<usize> = std.io.writeSpan(prefix_buf, ext_len, ext)
+                    if er.has {
+                        ext_len = er.value
+                    }
+                }
+                prefix_len = ext_len
+                stack[stack_len] = TextTreeFrame { cmd: sub, idx: 0, count: child_count, depth: child_depth, is_last: false }
+                stack_len = stack_len + 1
+            }
+        }
+    }
+    return p
+}
+
+pub fn renderText(out: MutSpan<u8>, cmd: TreeCommand, opts: HelpTreeOpts) -> Maybe<Span<u8>> {
+    var pos: usize = 0
+
+    var name_buf: [128]u8 = [0_u8; 128]
+    let name_styled: Maybe<Span<u8>> = styleText(name_buf, cmd.name, opts.theme.command, opts)
+    if name_styled.has {
+        let name_result: Maybe<usize> = std.io.writeSpan(out, pos, name_styled.value)
+        if name_result.has {
+            pos = name_result.value
+        }
+    }
+    out[pos] = 0x0a
+    pos = pos + 1
+
+    var i: usize = 0
+    while i < std.mem.len(cmd.options) {
+        let opt: TreeOption = cmd.options[i]
+        if !shouldSkipOption(opt, opts.tree_all) {
+            var meta_buf: [64]u8 = [0_u8; 64]
+            var meta_len: usize = 0
+
+            if std.mem.len(opt.short) > 0 && std.mem.len(opt.long) > 0 {
+                let short_result: Maybe<usize> = std.io.writeSpan(meta_buf, meta_len, opt.short)
+                if short_result.has {
+                    meta_len = short_result.value
+                }
+                meta_buf[meta_len] = 0x2c
+                meta_len = meta_len + 1
+                meta_buf[meta_len] = 0x20
+                meta_len = meta_len + 1
+                let long_result: Maybe<usize> = std.io.writeSpan(meta_buf, meta_len, opt.long)
+                if long_result.has {
+                    meta_len = long_result.value
+                }
+            } else if std.mem.len(opt.long) > 0 {
+                let long_result: Maybe<usize> = std.io.writeSpan(meta_buf, meta_len, opt.long)
+                if long_result.has {
+                    meta_len = long_result.value
+                }
+            } else if std.mem.len(opt.short) > 0 {
+                let short_result: Maybe<usize> = std.io.writeSpan(meta_buf, meta_len, opt.short)
+                if short_result.has {
+                    meta_len = short_result.value
+                }
+            } else {
+                let name_result: Maybe<usize> = std.io.writeSpan(meta_buf, meta_len, opt.name)
+                if name_result.has {
+                    meta_len = name_result.value
+                }
+            }
+
+            let meta_view: Span<u8> = std.mem.prefix(meta_buf, meta_len)
+            out[pos] = 0x20
+            pos = pos + 1
+            out[pos] = 0x20
+            pos = pos + 1
+            var meta_style_buf: [128]u8 = [0_u8; 128]
+            let meta_styled: Maybe<Span<u8>> = styleText(meta_style_buf, meta_view, opts.theme.options, opts)
+            if meta_styled.has {
+                let meta_result: Maybe<usize> = std.io.writeSpan(out, pos, meta_styled.value)
+                if meta_result.has {
+                    pos = meta_result.value
+                }
+            }
+            let ellipsis: Span<u8> = std.mem.span(" … ")
+            let ellipsis_result: Maybe<usize> = std.io.writeSpan(out, pos, ellipsis)
+            if ellipsis_result.has {
+                pos = ellipsis_result.value
+            }
+            var desc_style_buf: [128]u8 = [0_u8; 128]
+            let desc_styled: Maybe<Span<u8>> = styleText(desc_style_buf, opt.description, opts.theme.description, opts)
+            if desc_styled.has {
+                let desc_result: Maybe<usize> = std.io.writeSpan(out, pos, desc_styled.value)
+                if desc_result.has {
+                    pos = desc_result.value
+                }
+            }
+            out[pos] = 0x0a
+            pos = pos + 1
+        }
+        i = i + 1
+    }
+
+    if std.mem.len(cmd.subcommands) > 0 {
+        out[pos] = 0x0a
+        pos = pos + 1
+        pos = renderTextLines(out, pos, cmd, opts)
+    }
+
+    return std.mem.prefix(out, pos)
+}
+
+fn writeJsonString(out: MutSpan<u8>, pos: usize, text: Span<u8>) -> usize {
+    var p: usize = pos
+    out[p] = 0x22
+    p = p + 1
+    var i: usize = 0
+    while i < std.mem.len(text) {
+        let ch: Maybe<u8> = std.mem.get(text, i)
+        if ch.has {
+            if ch.value == 0x22 {
+                out[p] = 0x5c
+                p = p + 1
+                out[p] = 0x22
+                p = p + 1
+            } else if ch.value == 0x5c {
+                out[p] = 0x5c
+                p = p + 1
+                out[p] = 0x5c
+                p = p + 1
+            } else if ch.value == 0x0a {
+                out[p] = 0x5c
+                p = p + 1
+                out[p] = 0x6e
+                p = p + 1
+            } else {
+                out[p] = ch.value
+                p = p + 1
+            }
+        }
+        i = i + 1
+    }
+    out[p] = 0x22
+    p = p + 1
+    return p
+}
+
+fn renderCommandOptions(out: MutSpan<u8>, pos: usize, cmd: TreeCommand, opts: HelpTreeOpts) -> usize {
+    var p: usize = pos
+    var opt_count: usize = 0
+    var i: usize = 0
+    while i < std.mem.len(cmd.options) {
+        if !shouldSkipOption(cmd.options[i], opts.tree_all) {
+            opt_count = opt_count + 1
+        }
+        i = i + 1
+    }
+    if opt_count == 0 {
+        return p
+    }
+    p = writeTextStr(out, p, ",\"options\":[")
+    var first: Bool = true
+    i = 0
+    while i < std.mem.len(cmd.options) {
+        let opt: TreeOption = cmd.options[i]
+        if !shouldSkipOption(opt, opts.tree_all) {
+            if !first {
+                p = writeTextStr(out, p, ",")
+            }
+            first = false
+            p = writeTextStr(out, p, "{\"type\":\"option\",\"name\":")
+            p = writeJsonString(out, p, opt.name)
+            if std.mem.len(opt.description) > 0 {
+                p = writeTextStr(out, p, ",\"description\":")
+                p = writeJsonString(out, p, opt.description)
+            }
+            if std.mem.len(opt.short) > 0 {
+                p = writeTextStr(out, p, ",\"short\":")
+                p = writeJsonString(out, p, opt.short)
+            }
+            if std.mem.len(opt.long) > 0 {
+                p = writeTextStr(out, p, ",\"long\":")
+                p = writeJsonString(out, p, opt.long)
+            }
+            if opt.required {
+                p = writeTextStr(out, p, ",\"required\":true")
+            } else {
+                p = writeTextStr(out, p, ",\"required\":false")
+            }
+            if opt.takes_value {
+                p = writeTextStr(out, p, ",\"takes_value\":true")
+            } else {
+                p = writeTextStr(out, p, ",\"takes_value\":false")
+            }
+            p = writeTextStr(out, p, "}")
+        }
+        i = i + 1
+    }
+    p = writeTextStr(out, p, "]")
+    return p
+}
+
+fn renderCommandArguments(out: MutSpan<u8>, pos: usize, cmd: TreeCommand, opts: HelpTreeOpts) -> usize {
+    var p: usize = pos
+    var arg_count: usize = 0
+    var i: usize = 0
+    while i < std.mem.len(cmd.arguments) {
+        if !shouldSkipArgument(cmd.arguments[i], opts.tree_all) {
+            arg_count = arg_count + 1
+        }
+        i = i + 1
+    }
+    if arg_count == 0 {
+        return p
+    }
+    p = writeTextStr(out, p, ",\"arguments\":[")
+    var first: Bool = true
+    i = 0
+    while i < std.mem.len(cmd.arguments) {
+        let arg: TreeArgument = cmd.arguments[i]
+        if !shouldSkipArgument(arg, opts.tree_all) {
+            if !first {
+                p = writeTextStr(out, p, ",")
+            }
+            first = false
+            p = writeTextStr(out, p, "{\"type\":\"argument\",\"name\":")
+            p = writeJsonString(out, p, arg.name)
+            if std.mem.len(arg.description) > 0 {
+                p = writeTextStr(out, p, ",\"description\":")
+                p = writeJsonString(out, p, arg.description)
+            }
+            if arg.required {
+                p = writeTextStr(out, p, ",\"required\":true")
+            } else {
+                p = writeTextStr(out, p, ",\"required\":false")
+            }
+            p = writeTextStr(out, p, "}")
+        }
+        i = i + 1
+    }
+    p = writeTextStr(out, p, "]")
+    return p
+}
+
+type JsonStackFrame {
+    cmd: TreeCommand,
+    sub_idx: usize,
+    sub_count: usize,
+    first: Bool,
+    depth: usize,
+}
+
+fn renderJsonCommand(out: MutSpan<u8>, pos: usize, root: TreeCommand, opts: HelpTreeOpts) -> usize {
+    var p: usize = pos
+    var stack: [32]JsonStackFrame = [JsonStackFrame { cmd: root, sub_idx: 0, sub_count: 0, first: true, depth: 0 }; 32]
+    var stack_len: usize = 0
+
+    // Render root command
+    p = writeTextStr(out, p, "{\"type\":\"command\",\"name\":")
+    p = writeJsonString(out, p, root.name)
+    if std.mem.len(root.description) > 0 {
+        p = writeTextStr(out, p, ",\"description\":")
+        p = writeJsonString(out, p, root.description)
+    }
+    p = renderCommandOptions(out, p, root, opts)
+    p = renderCommandArguments(out, p, root, opts)
+
+    // Count root subcommands
+    var root_sub_count: usize = 0
+    var i: usize = 0
+    while i < std.mem.len(root.subcommands) {
+        if !shouldSkipCommand(root.subcommands[i], opts) {
+            root_sub_count = root_sub_count + 1
+        }
+        i = i + 1
+    }
+
+    let can_recurse: Bool = !opts.depth_limit.has || 0 < opts.depth_limit.value
+    if root_sub_count > 0 && can_recurse {
+        p = writeTextStr(out, p, ",\"subcommands\":[")
+        stack[0] = JsonStackFrame { cmd: root, sub_idx: 0, sub_count: root_sub_count, first: true, depth: 0 }
+        stack_len = 1
+    } else {
+        p = writeTextStr(out, p, "}")
+        return p
+    }
+
+    while stack_len > 0 {
+        let top_idx: usize = stack_len - 1
+        let top: JsonStackFrame = stack[top_idx]
+
+        // Find next visible subcommand
+        var visible: usize = 0
+        var scan_i: usize = 0
+        var found_cmd: TreeCommand = top.cmd.subcommands[0]
+        var found: Bool = false
+        while scan_i < std.mem.len(top.cmd.subcommands) {
+            if !shouldSkipCommand(top.cmd.subcommands[scan_i], opts) {
+                if visible == top.sub_idx {
+                    found_cmd = top.cmd.subcommands[scan_i]
+                    found = true
+                }
+                visible = visible + 1
+            }
+            scan_i = scan_i + 1
+        }
+
+        if !found || top.sub_idx >= top.sub_count {
+            // Done with this level
+            p = writeTextStr(out, p, "]")
+            p = writeTextStr(out, p, "}")
+            stack_len = stack_len - 1
+            continue
+        }
+
+        let sub: TreeCommand = found_cmd
+        if !top.first {
+            p = writeTextStr(out, p, ",")
+        }
+        stack[top_idx].first = false
+        stack[top_idx].sub_idx = top.sub_idx + 1
+
+        // Render subcommand
+        p = writeTextStr(out, p, "{\"type\":\"command\",\"name\":")
+        p = writeJsonString(out, p, sub.name)
+        if std.mem.len(sub.description) > 0 {
+            p = writeTextStr(out, p, ",\"description\":")
+            p = writeJsonString(out, p, sub.description)
+        }
+        p = renderCommandOptions(out, p, sub, opts)
+        p = renderCommandArguments(out, p, sub, opts)
+
+        // Count sub's subcommands
+        var sub_sub_count: usize = 0
+        var j: usize = 0
+        while j < std.mem.len(sub.subcommands) {
+            if !shouldSkipCommand(sub.subcommands[j], opts) {
+                sub_sub_count = sub_sub_count + 1
+            }
+            j = j + 1
+        }
+
+        let child_depth: usize = top.depth + 1
+        let child_can_recurse: Bool = !opts.depth_limit.has || child_depth < opts.depth_limit.value
+        if sub_sub_count > 0 && child_can_recurse && stack_len < 32 {
+            p = writeTextStr(out, p, ",\"subcommands\":[")
+            stack[stack_len] = JsonStackFrame { cmd: sub, sub_idx: 0, sub_count: sub_sub_count, first: true, depth: child_depth }
+            stack_len = stack_len + 1
+        } else {
+            p = writeTextStr(out, p, "}")
+        }
+    }
+
+    return p
+}
+
+pub fn renderJson(out: MutSpan<u8>, cmd: TreeCommand, opts: HelpTreeOpts) -> Maybe<Span<u8>> {
+    var pos: usize = 0
+    pos = renderJsonCommand(out, pos, cmd, opts)
+    out[pos] = 0x0a
+    pos = pos + 1
+    return std.mem.prefix(out, pos)
+}
+
+pub fn runForTree(world: World, out: MutSpan<u8>, root: TreeCommand, opts: HelpTreeOpts, path: [8]Span<u8>, path_len: usize) -> Void raises {
+    var selected: TreeCommand = root
+    var path_idx: usize = 0
+    while path_idx < path_len {
+        let token: Span<u8> = path[path_idx]
+        var found: Bool = false
+        var i: usize = 0
+        while i < std.mem.len(selected.subcommands) {
+            if std.mem.eql(selected.subcommands[i].name, token) {
+                selected = selected.subcommands[i]
+                found = true
+                break
+            }
+            i = i + 1
+        }
+        if !found {
+            break
+        }
+        path_idx = path_idx + 1
+    }
+    if opts.output_json {
+        let result: Maybe<Span<u8>> = renderJson(out, selected, opts)
+        if result.has {
+            check world.out.write(result.value)
+        }
+    } else {
+        let result: Maybe<Span<u8>> = renderText(out, selected, opts)
+        if result.has {
+            check world.out.write(result.value)
+        }
+        check world.out.write(std.mem.span("\n\nUse `"))
+        check world.out.write(root.name)
+        check world.out.write(std.mem.span(" <COMMAND> --help` for full details on arguments and flags.\n"))
+    }
+}
+
+pub fn parseInvocation(args: [16]String, arg_len: usize) -> HelpTreeOpts {
+    var opts: HelpTreeOpts = defaultOpts()
+    var i: usize = 0
+    while i < arg_len {
+        let arg: String = args[i]
+        if std.mem.eql(arg, "--help-tree") {
+            opts.help_tree_found = true
+        } else if std.mem.eql(arg, "-a") || std.mem.eql(arg, "--tree-all") {
+            opts.tree_all = true
+        } else if std.mem.eql(arg, "--tree-output") && i + 1 < arg_len {
+            i = i + 1
+            if std.mem.eql(args[i], "json") {
+                opts.output_json = true
+            }
+        } else if std.mem.eql(arg, "--tree-style") && i + 1 < arg_len {
+            i = i + 1
+            if std.mem.eql(args[i], "plain") {
+                opts.style_plain = true
+            }
+        } else if std.mem.eql(arg, "--tree-color") && i + 1 < arg_len {
+            i = i + 1
+            if std.mem.eql(args[i], "always") {
+                opts.color_always = true
+            }
+            if std.mem.eql(args[i], "never") {
+                opts.color_never = true
+            }
+        } else if (std.mem.eql(arg, "-L") || std.mem.eql(arg, "--tree-depth")) && i + 1 < arg_len {
+            i = i + 1
+            let parsed: Maybe<usize> = std.parse.parseUsize(std.mem.span(args[i]))
+            if parsed.has {
+                opts.depth_limit = parsed
+            }
+        }
+        i = i + 1
+    }
+    return opts
+}
+
+type PathResult {
+    paths: [8]Span<u8>,
+    len: usize,
+}
+
+pub fn parsePath(args: [16]String, arg_len: usize) -> PathResult {
+    var path_out: [8]Span<u8> = [std.mem.span(""); 8]
+    var path_len: usize = 0
+    var help_tree_seen: Bool = false
+    var i: usize = 0
+    while i < arg_len {
+        let arg: String = args[i]
+        if std.mem.eql(arg, "--help-tree") {
+            help_tree_seen = true
+        } else if std.mem.eql(arg, "-L") || std.mem.eql(arg, "--tree-depth") || std.mem.eql(arg, "-I") || std.mem.eql(arg, "--tree-ignore") || std.mem.eql(arg, "--tree-output") || std.mem.eql(arg, "--tree-style") || std.mem.eql(arg, "--tree-color") {
+            i = i + 1
+        } else if std.mem.eql(arg, "-a") || std.mem.eql(arg, "--tree-all") {
+            let unused: Bool = false
+        } else if std.mem.len(arg) > 0 {
+            let first: Maybe<u8> = std.mem.get(std.mem.span(arg), 0)
+            if first.has && first.value != 0x2d && !help_tree_seen {
+                if path_len < 8 {
+                    path_out[path_len] = std.mem.span(arg)
+                    path_len = path_len + 1
+                }
+            }
+        }
+        i = i + 1
+    }
+    return PathResult { paths: path_out, len: path_len }
+}
+
+pub fn tryHelpTree(world: World, out: MutSpan<u8>, root: TreeCommand, args: [16]String, arg_len: usize) -> Void raises {
+    var opts: HelpTreeOpts = defaultOpts()
+    var parse_i: usize = 0
+    while parse_i < arg_len {
+        let arg: String = args[parse_i]
+        if std.mem.eql(arg, "--help-tree") {
+            opts.help_tree_found = true
+        } else if std.mem.eql(arg, "-a") || std.mem.eql(arg, "--tree-all") {
+            opts.tree_all = true
+        } else if std.mem.eql(arg, "--tree-output") && parse_i + 1 < arg_len {
+            parse_i = parse_i + 1
+            if std.mem.eql(args[parse_i], "json") {
+                opts.output_json = true
+            }
+        } else if std.mem.eql(arg, "--tree-style") && parse_i + 1 < arg_len {
+            parse_i = parse_i + 1
+            if std.mem.eql(args[parse_i], "plain") {
+                opts.style_plain = true
+            }
+        } else if std.mem.eql(arg, "--tree-color") && parse_i + 1 < arg_len {
+            parse_i = parse_i + 1
+            if std.mem.eql(args[parse_i], "always") {
+                opts.color_always = true
+            }
+            if std.mem.eql(args[parse_i], "never") {
+                opts.color_never = true
+            }
+        } else if (std.mem.eql(arg, "-L") || std.mem.eql(arg, "--tree-depth")) && parse_i + 1 < arg_len {
+            parse_i = parse_i + 1
+            let parsed: Maybe<usize> = std.parse.parseUsize(std.mem.span(args[parse_i]))
+            if parsed.has {
+                opts.depth_limit = parsed
+            }
+        }
+        parse_i = parse_i + 1
+    }
+    if !opts.help_tree_found {
+        return
+    }
+    var path_out: [8]Span<u8> = [std.mem.span(""); 8]
+    var path_len: usize = 0
+    var help_tree_seen: Bool = false
+    var path_i: usize = 0
+    while path_i < arg_len {
+        let arg: String = args[path_i]
+        if std.mem.eql(arg, "--help-tree") {
+            help_tree_seen = true
+        } else if std.mem.eql(arg, "-L") || std.mem.eql(arg, "--tree-depth") || std.mem.eql(arg, "-I") || std.mem.eql(arg, "--tree-ignore") || std.mem.eql(arg, "--tree-output") || std.mem.eql(arg, "--tree-style") || std.mem.eql(arg, "--tree-color") {
+            path_i = path_i + 1
+        } else if std.mem.eql(arg, "-a") || std.mem.eql(arg, "--tree-all") {
+            let unused: Bool = false
+        } else if std.mem.len(arg) > 0 {
+            let first: Maybe<u8> = std.mem.get(std.mem.span(arg), 0)
+            if first.has && first.value != 0x2d && !help_tree_seen {
+                if path_len < 8 {
+                    path_out[path_len] = std.mem.span(arg)
+                    path_len = path_len + 1
+                }
+            }
+        }
+        path_i = path_i + 1
+    }
+    check runForTree(world, out, root, opts, path_out, path_len)
+}
+
+pub fn runBasicExample(world: World, out: MutSpan<u8>, args: [16]String, arg_len: usize) -> Void raises {
+    var project_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+    var project_list_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+    var project_create_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+    var task_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+    var task_list_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+    var task_done_opts: [1]TreeOption = [TreeOption { name: std.mem.span("verbose"), short: std.mem.span(""), long: std.mem.span("--verbose"), description: std.mem.span("Verbose output"), required: false, takes_value: false, hidden: false }]
+
+    var project_create_args: [1]TreeArgument = [TreeArgument { name: std.mem.span("NAME"), description: std.mem.span("Project name"), required: true, hidden: false }]
+    var task_done_args: [1]TreeArgument = [TreeArgument { name: std.mem.span("ID"), description: std.mem.span("Task ID"), required: true, hidden: false }]
+
+    let no_opts: Span<TreeOption> = project_opts
+    let no_args: Span<TreeArgument> = project_create_args
+    var empty_subcommands: [0]TreeCommand = []
+    let no_subs: Span<TreeCommand> = empty_subcommands
+
+    var project_list: TreeCommand = TreeCommand { name: std.mem.span("list"), description: std.mem.span("List all projects"), options: project_list_opts, arguments: no_args, subcommands: no_subs, hidden: false }
+    var project_create: TreeCommand = TreeCommand { name: std.mem.span("create"), description: std.mem.span("Create a new project"), options: project_create_opts, arguments: project_create_args, subcommands: no_subs, hidden: false }
+    var project_subs: [2]TreeCommand = [project_list, project_create]
+    var project: TreeCommand = TreeCommand { name: std.mem.span("project"), description: std.mem.span("Manage projects"), options: project_opts, arguments: no_args, subcommands: project_subs, hidden: false }
+
+    var task_list: TreeCommand = TreeCommand { name: std.mem.span("list"), description: std.mem.span("List all tasks"), options: task_list_opts, arguments: no_args, subcommands: no_subs, hidden: false }
+    var task_done: TreeCommand = TreeCommand { name: std.mem.span("done"), description: std.mem.span("Mark a task as done"), options: task_done_opts, arguments: task_done_args, subcommands: no_subs, hidden: false }
+    var task_subs: [2]TreeCommand = [task_list, task_done]
+    var task: TreeCommand = TreeCommand { name: std.mem.span("task"), description: std.mem.span("Manage tasks"), options: task_opts, arguments: no_args, subcommands: task_subs, hidden: false }
+
+    var root_subs: [2]TreeCommand = [project, task]
+
+    var discovery_opts: [7]TreeOption = [TreeOption { name: std.mem.span("help-tree"), short: std.mem.span(""), long: std.mem.span("--help-tree"), description: std.mem.span("Print a recursive command map derived from framework metadata"), required: false, takes_value: false, hidden: false }, TreeOption { name: std.mem.span("tree-depth"), short: std.mem.span("-L"), long: std.mem.span("--tree-depth"), description: std.mem.span("Limit --help-tree recursion depth (Unix tree -L style)"), required: false, takes_value: true, hidden: false }, TreeOption { name: std.mem.span("tree-ignore"), short: std.mem.span("-I"), long: std.mem.span("--tree-ignore"), description: std.mem.span("Exclude subtrees/commands from --help-tree output (repeatable)"), required: false, takes_value: true, hidden: false }, TreeOption { name: std.mem.span("tree-all"), short: std.mem.span("-a"), long: std.mem.span("--tree-all"), description: std.mem.span("Include hidden subcommands in --help-tree output"), required: false, takes_value: false, hidden: false }, TreeOption { name: std.mem.span("tree-output"), short: std.mem.span(""), long: std.mem.span("--tree-output"), description: std.mem.span("Output format (text or json)"), required: false, takes_value: true, hidden: false }, TreeOption { name: std.mem.span("tree-style"), short: std.mem.span(""), long: std.mem.span("--tree-style"), description: std.mem.span("Tree text styling mode (rich or plain)"), required: false, takes_value: true, hidden: false }, TreeOption { name: std.mem.span("tree-color"), short: std.mem.span(""), long: std.mem.span("--tree-color"), description: std.mem.span("Tree color mode (auto, always, never)"), required: false, takes_value: true, hidden: false }]
+
+    var root: TreeCommand = TreeCommand { name: std.mem.span("basic"), description: std.mem.span("A basic example CLI with nested subcommands"), options: discovery_opts, arguments: no_args, subcommands: root_subs, hidden: false }
+
+    check tryHelpTree(world, out, root, args, arg_len)
+}

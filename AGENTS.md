@@ -22,6 +22,8 @@ HelpTree/
 ├── julia/          — Julia package (ArgParse integration)
 ├── lua/            — Pure Lua library
 ├── ocaml/          — Pure OCaml library
+├── d/              — D library (Phobos standard library)
+├── zero/           — Zero (experimental)
 ├── docs/           — Shared specification and config schema
 ├── tests/          — Shared fixtures & compliance expectations
 ├── README.md       — Public landing page
@@ -171,6 +173,24 @@ cd ocaml && make basic deep hidden
 ./examples/hidden --help-tree -a
 ```
 
+### D
+```bash
+cd d && dub build --config=basic --config=deep --config=hidden
+./basic --help-tree
+./deep --help-tree -L 1
+./hidden --help-tree -a
+```
+
+### Zero (Experimental)
+```bash
+cd zero
+zero run -- --help-tree
+zero run -- --help-tree -L 1
+zero run -- --help-tree -a
+```
+
+**Note**: Zero implementation is experimental due to compiler limitations. The MIR backend (v0.3.4) doesn't support complex struct types as function parameters, requiring a data-oriented design with flat arrays and indices.
+
 ### Kotlin
 ```bash
 cd kotlin && gradle build
@@ -245,3 +265,47 @@ pre-commit run go-vet
 4. Update root README language table
 5. Add language-specific notes to `docs/specification.md`
 6. Add build/test commands and pre-commit hooks to this file
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **HelpTree** (2024 symbols, 3585 relationships, 156 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/HelpTree/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/HelpTree/clusters` | All functional areas |
+| `gitnexus://repo/HelpTree/processes` | All execution flows |
+| `gitnexus://repo/HelpTree/process/{name}` | Step-by-step execution trace |
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->

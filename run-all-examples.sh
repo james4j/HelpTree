@@ -449,10 +449,33 @@ run_ocaml() {
     run_cmd ocaml "hidden all" ./examples/hidden --help-tree -a
 }
 
+# ── D ─────────────────────────────────────────────────────────────
+run_d() {
+    header "D (Phobos)"
+    cd "${REPO_ROOT}/d"
+    dub build --config=basic --config=deep --config=hidden
+
+    subheader "basic"
+    run_cmd d "basic text" ./basic --help-tree
+    run_cmd d "basic depth" ./basic --help-tree -L 1
+    run_cmd d "basic json" ./basic --help-tree --tree-output json
+    run_cmd d "basic path" ./basic project --help-tree
+
+    subheader "deep"
+    run_cmd d "deep text" ./deep --help-tree
+    run_cmd d "deep depth 1" ./deep --help-tree -L 1
+    run_cmd d "deep depth 2" ./deep --help-tree -L 2
+    run_cmd d "deep path" ./deep server config --help-tree
+
+    subheader "hidden"
+    run_cmd d "hidden default" ./hidden --help-tree
+    run_cmd d "hidden all" ./hidden --help-tree -a
+}
+
 # ── Run all ───────────────────────────────────────────────────────
 run_all() {
     local failed=0
-    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin; do
+    for lang in rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin d; do
         if ! "run_${lang}" 2>&1; then
             failed=$((failed + 1))
             echo ""
@@ -477,12 +500,12 @@ if [[ $# -eq 0 ]]; then
 else
     LANG="$1"
     case "$LANG" in
-        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java|julia|lua|ocaml|kotlin)
+        rust|python|typescript|go|csharp|swift|nim|crystal|ruby|zig|haskell|c|cpp|java|julia|lua|ocaml|kotlin|d)
             "run_${LANG}" 2>&1
             ;;
         *)
             echo "Unknown language: $LANG"
-            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin"
+            echo "Supported: rust python typescript go csharp swift nim crystal ruby zig haskell c cpp java julia lua ocaml kotlin d"
             exit 1
             ;;
     esac

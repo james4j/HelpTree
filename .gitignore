@@ -91,6 +91,16 @@ ocaml/**/*.cmo
 ocaml/**/*.cmx
 ocaml/**/*.o
 
+# D
+d/.dub/
+d/basic
+d/deep
+d/hidden
+
+# Zero
+zero/.zero/
+zero/zero.graph
+
 # General
 .DS_Store
 *.swp
@@ -100,3 +110,4 @@ ocaml/**/*.o
 .idea/
 .venv/
 nimbledeps/
+.gitnexus
